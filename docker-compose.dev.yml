@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_USER: spiritvpn_bot
+      POSTGRES_PASSWORD: spiritvpn_bot
+      POSTGRES_DB: spiritvpn_bot
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "spiritvpn_bot"]
+      interval: 2s
+      timeout: 2s
+      retries: 15

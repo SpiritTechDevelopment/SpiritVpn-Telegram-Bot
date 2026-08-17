@@ -1,0 +1,30 @@
+from __future__ import annotations
+
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    """Конфигурация проекта."""
+
+    model_config = SettingsConfigDict(env_prefix="BOT_", env_file=".env", extra="ignore")
+
+    telegram_bot_token: str
+    database_url: str = Field(
+        description="postgresql+asyncpg://... — своя база бота, не база spiritvpnd"
+    )
+
+    spiritvpnd_grpc_target: str = Field(description="host:port, например spiritvpnd.internal:8443")
+    spiritvpnd_tls_client_cert_file: str
+    spiritvpnd_tls_client_key_file: str
+    spiritvpnd_tls_ca_file: str
+
+    subscription_base_url: str = Field(
+        description="публичный базовый URL для /s/{token}, например https://sub.spiritvpn.app"
+    )
+
+    mini_app_url: str = Field(description="публичный URL развёрнутого Telegram Mini App")
+
+
+def load_settings() -> Settings:
+    return Settings()  # type: ignore[call-arg]

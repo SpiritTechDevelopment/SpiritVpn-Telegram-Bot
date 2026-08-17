@@ -1,5 +1,4 @@
-"""Контрактные тесты SpiritVPNGateway.
-"""
+"""Контрактные тесты SpiritVPNGateway."""
 
 from __future__ import annotations
 
@@ -41,7 +40,6 @@ from spiritvpn_bot.infrastructure.spiritvpn_grpc.gateway import SpiritVPNGateway
 
 
 class FakeCustomerAccessServicer(CustomerAccessServiceServicer):
-
     def __init__(self) -> None:
         self.received_apply: list[ApplyCustomerAccessRequest] = []
         self.apply_error: tuple[grpc.StatusCode, str] | None = None

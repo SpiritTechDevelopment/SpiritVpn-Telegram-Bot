@@ -9,8 +9,7 @@ from spiritvpn_bot.domain.entities.plan import Plan
 
 
 class PurchaseSubscriptionUseCase:
-    """Создаёт заказ и переводит его в AWAITING_PAYMENT.
-    """
+    """Создаёт заказ и переводит его в AWAITING_PAYMENT."""
 
     def __init__(self, uow: UnitOfWork, id_generator: IdGenerator, clock: Clock) -> None:
         self._uow = uow

@@ -12,8 +12,7 @@ from spiritvpn_bot.domain.services.command_sequence import next_command_number
 
 
 class ConfirmPaymentUseCase:
-    """Выдача command_number.
-    """
+    """Выдача command_number."""
 
     def __init__(self, uow: UnitOfWork, clock: Clock, events: EventPublisher) -> None:
         self._uow = uow

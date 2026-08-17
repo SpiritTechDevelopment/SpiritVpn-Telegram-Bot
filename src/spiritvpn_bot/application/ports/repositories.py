@@ -27,8 +27,7 @@ class OrderRepository(Protocol):
 
 
 class CommandSequenceRepository(Protocol):
-    """Владеет монотонным счётчиком command_number на customer_id.
-    """
+    """Владеет монотонным счётчиком command_number на customer_id."""
 
     async def last_issued_for_update(self, customer_id: str) -> int | None:
         """Блокирует и возвращает последний выданный клиенту command_number.

@@ -9,8 +9,7 @@ from spiritvpn_bot.domain.events import AccessRequested
 
 
 class RequestAccessUseCase:
-    """Вызывает ApplyCustomerAccess в spiritvpnd для оплаченного заказа.
-    """
+    """Вызывает ApplyCustomerAccess в spiritvpnd для оплаченного заказа."""
 
     def __init__(self, uow: UnitOfWork, gateway: VPNAccessGateway, events: EventPublisher) -> None:
         self._uow = uow

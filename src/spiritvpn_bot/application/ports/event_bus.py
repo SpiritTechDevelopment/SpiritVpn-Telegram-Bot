@@ -4,7 +4,6 @@ from typing import Protocol
 
 
 class EventPublisher(Protocol):
-    """Публикация доменных событий.
-    """
+    """Публикация доменных событий."""
 
     async def publish(self, event: object) -> None: ...

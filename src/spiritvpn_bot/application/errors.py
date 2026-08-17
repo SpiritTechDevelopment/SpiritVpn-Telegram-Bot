@@ -35,10 +35,8 @@ class FleetNotFound(VPNGatewayError):
 
 
 class FleetMismatch(VPNGatewayError):
-    """Попытка перевести существующего клиента на другой fleet_id.
-    """
+    """Попытка перевести существующего клиента на другой fleet_id."""
 
 
 class ExpiryRegression(VPNGatewayError):
-    """Отправлен expires_at раньше уже сохранённого для этого клиента.
-    """
+    """Отправлен expires_at раньше уже сохранённого для этого клиента."""

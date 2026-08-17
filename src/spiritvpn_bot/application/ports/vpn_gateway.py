@@ -27,8 +27,7 @@ class AccessLink:
 
 
 class VPNAccessGateway(Protocol):
-    """Entry Point для обращения к spiritvpnd.
-    """
+    """Entry Point для обращения к spiritvpnd."""
 
     async def apply_access(
         self,

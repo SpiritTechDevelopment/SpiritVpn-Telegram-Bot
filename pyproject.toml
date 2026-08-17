@@ -38,6 +38,7 @@ pytest-cov = "^6.0"
 ruff = "^0.8"
 mypy = "^1.13"
 types-grpcio = "^1.83.0.20260730"
+pre-commit = "^4.6.2"
 
 [build-system]
 requires = ["poetry-core>=2.0"]

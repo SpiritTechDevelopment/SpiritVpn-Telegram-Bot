@@ -9,9 +9,7 @@ from spiritvpn_bot.domain.entities.plan import Plan
 
 
 class OrderBuilder:
-    """Билдит объект Order из клиента и плана.
-
-    """
+    """Билдит объект Order из клиента и плана."""
 
     def __init__(self, id_generator: IdGenerator, clock: Clock) -> None:
         self._id_generator = id_generator

@@ -14,11 +14,6 @@ class InitDataError(Exception):
 def validate_init_data(init_data: str, *, bot_token: str, max_age_seconds: int = 3600) -> int:
     """Проверяет подпись Telegram WebApp initData и возвращает telegram user id.
 
-    Алгоритм — тот, что документирует Telegram: HMAC-SHA256 от отсортированных
-    пар "key=value" (без hash), ключ подписи — HMAC-SHA256("WebAppData", bot_token).
-    Без этой проверки любой клиент мог бы подставить чужой telegram user id
-    в заголовок и читать чужую подписку.
-
     Args:
         init_data: сырая строка Telegram.WebApp.initData.
         bot_token: токен бота, тот же, что и у BotFather.

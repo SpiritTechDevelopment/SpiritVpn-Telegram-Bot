@@ -15,10 +15,6 @@ def build_dispatcher() -> Dispatcher:
 async def run_bot(container: Container) -> None:
     """Запускает long polling.
 
-    redeem_friend_code_factory/request_access_factory и остальные значения
-    ниже aiogram кладёт в workflow_data и подставляет в хендлеры по имени
-    параметра — см. handlers/start.py.
-
     Args:
         container: собранный композиционный корень (см. di.py).
     """

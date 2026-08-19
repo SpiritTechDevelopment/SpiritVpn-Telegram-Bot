@@ -8,7 +8,7 @@ FRIENDS_FREE_PLAN_ID = "friends-free"
 
 
 class PlanCatalog:
-    """ Каталог планов."""
+    """Каталог планов."""
 
     def __init__(self, plans: dict[str, Plan]) -> None:
         self._plans = plans
@@ -34,8 +34,7 @@ class PlanCatalog:
         return list(self._plans.values())
 
     def purchasable(self) -> list[Plan]:
-        """Планы для публичной витрины мини-аппа.
-        """
+        """Планы для публичной витрины мини-аппа."""
         return [plan for plan in self._plans.values() if plan.purchasable]
 
 

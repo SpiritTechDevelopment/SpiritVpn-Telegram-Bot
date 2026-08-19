@@ -6,8 +6,7 @@ import hmac
 
 
 class SubscriptionTokenSigner:
-    """Подписывает customer_id в самодостаточный токен для GET /s/{token}.
-    """
+    """Подписывает customer_id в самодостаточный токен для GET /s/{token}."""
 
     def __init__(self, signing_key: bytes) -> None:
         self._signing_key = signing_key

@@ -32,10 +32,6 @@ def create_app(
 ) -> FastAPI:
     """Собирает FastAPI-приложение мини-аппа и публичного эндпоинта подписки.
 
-    Фабрика, а не модуль-синглтон с глобальным `app`: зависимости приходят
-    готовыми снаружи (см. di.py), само приложение остаётся тестируемым без
-    поднятой БД и реального Telegram.
-
     Args:
         get_my_links: use case чтения текущих ссылок клиента.
         token_signer: подпись/проверка токена подписочного эндпоинта.
@@ -82,9 +78,6 @@ def create_app(
         token = token_signer.sign(customer_id)
         return SubscriptionUrlOut(url=f"{subscription_base_url}/s/{token}")
 
-    # Публичный, initData не требует: каталог цен — не персональные данные,
-    # и витрину разумно показать даже до первого запуска мини-аппа изнутри
-    # Telegram (например, при открытии по прямой ссылке в браузере).
     @app.get("/api/plans", response_model=list[PlanOut])
     async def public_plans() -> list[PlanOut]:
         return [
@@ -99,8 +92,6 @@ def create_app(
             for plan in plans.purchasable()
         ]
 
-    # Смонтировано последним: StaticFiles на "/" иначе перехватил бы запросы
-    # раньше, чем до них доходят маршруты выше.
     app.mount("/", StaticFiles(directory=_STATIC_DIR, html=True), name="static")
 
     return app

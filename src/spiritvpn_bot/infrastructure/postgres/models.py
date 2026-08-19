@@ -5,8 +5,6 @@ from datetime import datetime
 from sqlalchemy import BigInteger, CheckConstraint, DateTime, Integer, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-# Перечислимые значения — text + CHECK, без нативного ENUM: тот же приём, что
-# у spiritvpnd, чтобы набор значений менялся обычной миграцией, а не ALTER TYPE.
 _ORDER_STATUSES = (
     "CREATED",
     "AWAITING_PAYMENT",

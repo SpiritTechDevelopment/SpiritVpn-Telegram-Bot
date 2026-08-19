@@ -25,12 +25,7 @@ FALLBACK_TEXT = "Не понимаю это сообщение. Откройте
 
 
 def mini_app_keyboard(mini_app_url: str) -> InlineKeyboardMarkup:
-    """Кнопка на мини-апп.
-
-    Telegram открывает web_app-кнопку только по https — для http (локальная
-    разработка без туннеля) отдаём обычную ссылку в браузер вместо
-    встроенного приложения.
-    """
+    """Кнопка на мини-апп."""
     button = (
         InlineKeyboardButton(text="Открыть приложение", web_app=WebAppInfo(url=mini_app_url))
         if mini_app_url.startswith("https://")
@@ -40,15 +35,7 @@ def mini_app_keyboard(mini_app_url: str) -> InlineKeyboardMarkup:
 
 
 async def answer_with_mini_app(message: Message, text: str, mini_app_url: str) -> None:
-    """Отправляет ответ с кнопкой на мини-апп, с деградацией на dev-адресах.
-
-    Telegram отклоняет URL инлайн-кнопки, ведущий на localhost или любой
-    другой недоступный ему адрес, — «Wrong HTTP URL», причём валит вообще
-    любое сообщение с такой кнопкой, не только web_app. В деплое, где
-    mini_app_url — настоящий домен, это не сработает; здесь же — обычная
-    ситуация локальной разработки, и без обработки бот не отвечал бы вообще
-    ничего. При отказе повторяем тем же текстом, но без кнопки, просто
-    дописав ссылку в сообщение.
+    """Отправляет ответ с кнопкой на мини-апп.
 
     Args:
         message: сообщение, на которое отвечаем.
@@ -65,11 +52,7 @@ async def answer_with_mini_app(message: Message, text: str, mini_app_url: str) -
 
 
 async def handle_start(message: Message, mini_app_url: str) -> None:
-    """/start — приветствие и кнопка на мини-апп.
-
-    Никаких упоминаний бесплатного доступа по паролю: это не публичная
-    функция, для обычных пользователей её как будто не существует.
-    """
+    """/start — приветствие и кнопка на мини-апп."""
     await answer_with_mini_app(message, WELCOME_TEXT, mini_app_url)
 
 
@@ -81,15 +64,7 @@ async def handle_text(
     subscription_base_url: str,
     mini_app_url: str,
 ) -> None:
-    """Любое обычное сообщение (не команда) — пробуем как общий пароль для своих.
-
-    redeem_friend_code_factory/request_access_factory — фабрики, а не
-    готовые экземпляры: каждый use case держит свой SqlAlchemyUnitOfWork, а
-    он не рассчитан на конкурентное использование одним и тем же объектом —
-    фабрика даёт свежий экземпляр на каждый вызов.
-
-    Несовпадение пароля и любое другое непонятное сообщение отвечают
-    одинаково: механизм не должен быть заметен тому, кто пароль не знает.
+    """Любое обычное сообщение (не команда) — проверка пароля(если это free план) и выдача подписки.
 
     Args:
         message: входящее сообщение.
@@ -110,10 +85,6 @@ async def handle_text(
         await answer_with_mini_app(message, FALLBACK_TEXT, mini_app_url)
         return
 
-    # Пароль совпал, заказ уже PAID независимо от исхода вызова ниже. Если
-    # spiritvpnd сейчас недоступен, отдельного воркера, который бы повторил
-    # запрос позже, пока нет (см. README, раздел «Статус»), поэтому здесь не
-    # даём апдейту тихо провалиться без ответа.
     try:
         await request_access_factory().execute(order_id=order.id)
     except Exception:

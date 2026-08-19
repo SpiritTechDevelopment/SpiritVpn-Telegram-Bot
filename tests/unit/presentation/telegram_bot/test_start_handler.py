@@ -163,9 +163,6 @@ async def test_shared_code_can_be_reused_by_anyone_who_knows_it() -> None:
 
 
 async def test_rejected_button_url_falls_back_to_plain_link() -> None:
-    # Telegram отклоняет URL инлайн-кнопки на localhost («Wrong HTTP URL») и
-    # заваливает всё сообщение целиком — без деградации бот не отвечал бы
-    # вообще ничего на dev-стенде без https
     message = FakeMessage(from_user=FakeUser(id=1), reject_button_urls=True)
 
     await handle_start(message, "http://localhost:8081")  # type: ignore[arg-type]

@@ -1,10 +1,4 @@
-"""Гейт и фикстуры интеграционных тестов Postgres.
-
-Гейт — пара переменных BOT_INTEGRATION_TESTS и DATABASE_URL, по образцу
-SPIRITVPN_INTEGRATION_TESTS/DATABASE_URL у самого spiritvpnd. У тестов свои
-переменные: DATABASE_URL, а не BOT_DATABASE_URL из конфигурации процесса,
-чтобы не притворяться, будто это одно и то же.
-"""
+"""Гейт и фикстуры интеграционных тестов Postgres."""
 
 from __future__ import annotations
 

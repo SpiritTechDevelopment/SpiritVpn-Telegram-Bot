@@ -5,8 +5,7 @@ from spiritvpn_bot.application.ports.vpn_gateway import AccessLink, VPNAccessGat
 
 
 class GetMyLinksUseCase:
-    """Читает текущие ссылки доступа клиента у spiritvpnd.
-    """
+    """Читает текущие ссылки доступа клиента у spiritvpnd."""
 
     def __init__(self, gateway: VPNAccessGateway) -> None:
         self._gateway = gateway

@@ -1,10 +1,4 @@
-"""Гарантирует, что .env.example не расходится с Settings.
-
-Ручная синхронизация двух списков переменных — источник дрейфа: поле в
-config.py легко добавить и забыть дописать в .env.example, и следующий, кто
-разворачивает бота с нуля, ловит невнятную ошибку валидации pydantic вместо
-понятного списка того, что нужно заполнить.
-"""
+"""Гарантирует, что .env.example не расходится с Settings."""
 
 from __future__ import annotations
 
@@ -24,10 +18,7 @@ def _keys_in_env_example() -> set[str]:
 
 def _uncommented_keys_in_env_example() -> set[str]:
     text = _ENV_EXAMPLE.read_text(encoding="utf-8")
-    return {
-        match.group(1)
-        for match in re.finditer(r"^(BOT_[A-Z0-9_]+)=", text, re.MULTILINE)
-    }
+    return {match.group(1) for match in re.finditer(r"^(BOT_[A-Z0-9_]+)=", text, re.MULTILINE)}
 
 
 def test_every_setting_is_documented() -> None:
@@ -38,8 +29,6 @@ def test_every_setting_is_documented() -> None:
 
 
 def test_env_example_has_no_stray_keys() -> None:
-    # обратная проверка: не даёт .env.example накопить переменные, которых
-    # в Settings уже нет — типичный след недоведённого до конца рефакторинга
     expected = {f"BOT_{name.upper()}" for name in Settings.model_fields}
     documented = _keys_in_env_example()
     stray = documented - expected

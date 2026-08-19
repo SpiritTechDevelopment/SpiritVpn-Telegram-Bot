@@ -1,5 +1,4 @@
-"""Точка входа процесса: `python -m spiritvpn_bot bot|api`.
-"""
+"""Точка входа процесса: `python -m spiritvpn_bot bot|api`."""
 
 from __future__ import annotations
 

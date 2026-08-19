@@ -19,8 +19,7 @@ target_metadata = Base.metadata
 
 
 def get_database_url() -> str:
-    """Читает адрес БД напрямую из окружения.
-    """
+    """Читает адрес БД напрямую из окружения."""
     url = os.environ.get("BOT_DATABASE_URL")
     if not url:
         raise RuntimeError("BOT_DATABASE_URL не задан")

@@ -20,6 +20,26 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    env:
+      BOT_INTEGRATION_TESTS: "1"
+      DATABASE_URL: "postgresql+asyncpg://spiritvpn_bot:spiritvpn_bot@localhost:5432/spiritvpn_bot"
+      BOT_DATABASE_URL: "postgresql+asyncpg://spiritvpn_bot:spiritvpn_bot@localhost:5432/spiritvpn_bot"
+
+    services:
+      postgres:
+        image: postgres:14-alpine
+        env:
+          POSTGRES_USER: spiritvpn_bot
+          POSTGRES_PASSWORD: spiritvpn_bot
+          POSTGRES_DB: spiritvpn_bot
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U spiritvpn_bot -d spiritvpn_bot"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -42,6 +62,9 @@ jobs:
         run: |
           poetry config virtualenvs.in-project true
           poetry install
+
+      - name: Apply database migrations
+        run: poetry run alembic upgrade head
 
       - name: Run tests
         run: poetry run pytest --cov=spiritvpn_bot --cov-report=xml --cov-report=html

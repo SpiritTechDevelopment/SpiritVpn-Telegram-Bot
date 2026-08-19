@@ -10,8 +10,7 @@ from spiritvpn_bot.domain.events import OrderPaid
 
 
 class ConfirmPaymentUseCase:
-    """Выдача command_number для заказа, оплаченного через платёжного провайдера.
-    """
+    """Выдача command_number для заказа, оплаченного через платёжного провайдера."""
 
     def __init__(self, uow: UnitOfWork, clock: Clock, events: EventPublisher) -> None:
         self._uow = uow

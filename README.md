@@ -2,8 +2,7 @@
 
 Telegram-бот и mini app для продажи доступа к SpiritVPN (VLESS + REALITY).
 Сервис является product-клиентом бэкенда `spiritvpnd`: обращается к нему по
-gRPC/mTLS, чтобы выдавать и проверять доступ клиентов. Доставка доступа на
-ноды — зона ответственности `spiritvpnd`, не этого репозитория.
+gRPC/mTLS, чтобы выдавать и проверять доступ клиентов. P.S. Данный бот вообще хуй кладет на доставку доступа на ноды, т.к это зона отевтственности `spiritvpnd`.
 
 ## Требования
 
@@ -13,7 +12,7 @@ gRPC/mTLS, чтобы выдавать и проверять доступ кли
 
 ## Структура
 
-Слоистая архитектура (ports & adapters), в стиле `spiritvpnd`:
+Layer архитектура (ports & adapters):
 
 - `src/spiritvpn_bot/domain/` — сущности и бизнес-правила, без ввода-вывода.
   Машина состояний `Order`, правило монотонности `command_number`.
@@ -24,7 +23,7 @@ gRPC/mTLS, чтобы выдавать и проверять доступ кли
 - `src/spiritvpn_bot/infrastructure/postgres/` — SQLAlchemy 2.0 async:
   модели, `SqlAlchemyUnitOfWork`, репозитории.
 - `src/spiritvpn_bot/presentation/telegram_bot/` — aiogram-хендлеры.
-  `/start` — приветствие и кнопка мини-аппа. Бесплатный доступ для своих
+  `/start` — приветствие и кнопка мини-аппа. Бесплатный доступ
   выдаётся по общему паролю (`RedeemFriendCodeUseCase`): любое текстовое
   сообщение молча проверяется на совпадение, при несовпадении бот отвечает
   так же, как на любой другой непонятный текст.
@@ -123,9 +122,7 @@ BOT_INTEGRATION_TESTS=1 DATABASE_URL="postgresql+asyncpg://spiritvpn_bot:spiritv
 ## Git-флоу и релизы
 
 Основная ветка — `Develop`. Изменения вносятся через отдельную ветку и
-pull request в `Develop`; прямые пуши в `Develop` допустимы только на этапе
-до появления промышленной эксплуатации.
-
+pull request в `Develop`; прямые пуши в `Develop` допустимы только до прод этапа
 На каждый push и pull request запускается `test` и `lint`
 (`.github/workflows/ci.yml`). После их успешного прохождения push в `Develop`
 дополнительно собирает образ и публикует его в
@@ -153,6 +150,27 @@ pull request в `Develop`; прямые пуши в `Develop` допустимы
 Добавление `notify-infrastructure` в этот репозиторий имеет смысл после
 того, как в `Infrastructure` появится секция компонента, роль и обработчик
 события.
+
+#### mTLS до spiritvpnd
+
+Бот — клиент, не эмитент сертификатов: он только читает готовые PEM-файлы
+с диска (`infrastructure/spiritvpn_grpc/client.py`), сам ничего не выпускает
+и не запрашивает. Пока никто не выпустил и не доставил эти файлы,
+подключение к `spiritvpnd` падает на TLS-хендшейке — это ожидаемо и не
+связано с кодом бота. Для развёрнутого (не локального) `spiritvpnd`
+`Infrastructure` должна положить в окружение бота:
+
+| Переменная | Содержимое |
+|---|---|
+| `BOT_SPIRITVPND_GRPC_TARGET` | `host:port` того `spiritvpnd`, к которому подключается бот |
+| `BOT_SPIRITVPND_TLS_CLIENT_CERT_FILE` | клиентский сертификат identity `spiffe://spiritvpn/develop/service/customer-service`, выпущенный `fleetctl` по профилю `customer-service` (`fleetctl/pki/model.py`) |
+| `BOT_SPIRITVPND_TLS_CLIENT_KEY_FILE` | приватный ключ этого сертификата |
+| `BOT_SPIRITVPND_TLS_CA_FILE` | CA, которым подписан серверный сертификат самого `spiritvpnd` (это не обязательно тот же CA, что подписывает identity бота) |
+
+Профиль `customer-service` в `fleetctl` зарезервирован, но пока никем не
+выпускался под конкретное окружение — это первый шаг, без которого
+остальная выкатка (Ansible-роль, `environment.yml`) не имеет смысла
+проверять.
 
 ## Статус
 

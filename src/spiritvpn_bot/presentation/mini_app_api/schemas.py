@@ -6,12 +6,7 @@ from spiritvpn_bot.application.ports.vpn_gateway import AccessKind, AccessState,
 
 
 class LinkStatusOut(BaseModel):
-    """Статус одного доступа для мини-аппа.
-
-    Осознанно без uri: сама ссылка отдаётся только через подписочный
-    эндпоинт (/s/{token}), не через JSON, который проще случайно залогировать
-    или закешировать где не следует.
-    """
+    """Статус одного доступа для мини-аппа."""
 
     kind: AccessKind
     state: AccessState

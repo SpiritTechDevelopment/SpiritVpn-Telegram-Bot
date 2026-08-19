@@ -14,8 +14,7 @@ from spiritvpn_bot.domain.events import OrderPaid
 
 
 class RedeemFriendCodeUseCase:
-    """Бесплатный доступ по общему паролю — только для своих типов, не для клиентов.
-    """
+    """Бесплатный доступ по общему паролю — только для своих типов, не для клиентов."""
 
     def __init__(
         self,

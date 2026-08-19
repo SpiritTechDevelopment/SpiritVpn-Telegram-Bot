@@ -11,9 +11,6 @@ class _FakeEvent:
 
 
 async def test_publish_does_not_raise() -> None:
-    # реальный баг: structlog резервирует "event" как имя первого
-    # позиционного аргумента (сам текст записи) — передать доменное событие
-    # под тем же именем kwarg'а раньше валило TypeError на каждый publish()
     publisher = LoggingEventPublisher()
 
     await publisher.publish(_FakeEvent(order_id="order-1"))

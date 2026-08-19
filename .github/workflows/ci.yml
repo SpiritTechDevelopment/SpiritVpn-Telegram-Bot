@@ -146,6 +146,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -155,3 +156,35 @@ jobs:
           cache-to: type=gha,mode=max
           provenance: mode=max
           sbom: true
+
+      # Уведомление о факте публикации, а не команда на выкатку: что из него
+      # следует, решает инфраструктура. Она закрепляет digest коммитом в
+      # desired state, и уже появление этого коммита в main запускает
+      # control-deploy — бот приезжает на тот же хост, что и бэкенд.
+      #
+      # Передаётся digest, а не тег: тег можно переставить, digest — нет, и
+      # только он делает выкатку воспроизводимой.
+      - name: Report the published image to the infrastructure
+        env:
+          GH_TOKEN: ${{ secrets.INFRA_DISPATCH_TOKEN }}
+          IMAGE_REPOSITORY: ${{ steps.image.outputs.name }}
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          # Пустой digest означает, что сборка не отработала. Отправлять
+          # неполное событие нельзя: принимающая сторона запишет его в
+          # desired state.
+          test -n "$IMAGE_DIGEST"
+          # jq сам экранирует значения; сборка JSON конкатенацией строк
+          # ломается на первом же неожиданном символе.
+          jq -n \
+            --arg environment develop \
+            --arg source_git_sha "$GITHUB_SHA" \
+            --arg repository "$IMAGE_REPOSITORY" \
+            --arg digest "$IMAGE_DIGEST" \
+            '{event_type: "bot-release", client_payload: {
+                environment: $environment,
+                source_git_sha: $source_git_sha,
+                image: {repository: $repository, digest: $digest}}}' \
+            | gh api repos/SpiritTechDevelopment/Infrastructure/dispatches \
+                --method POST --input -

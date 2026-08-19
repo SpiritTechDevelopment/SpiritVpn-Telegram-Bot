@@ -122,6 +122,7 @@ class FakeVPNAccessGateway:
         self.applied: list[AppliedAccessCall] = []
         self.links_by_customer: dict[str, list[AccessLink]] = {}
         self.raise_on_apply: Exception | None = None
+        self.raise_on_get_links: Exception | None = None
 
     async def apply_access(
         self,
@@ -141,6 +142,8 @@ class FakeVPNAccessGateway:
 
     async def get_links(self, *, customer_id: str) -> list[AccessLink]:
         self.journal.append(f"get_links:{customer_id}")
+        if self.raise_on_get_links is not None:
+            raise self.raise_on_get_links
         return self.links_by_customer.get(customer_id, [])
 
 

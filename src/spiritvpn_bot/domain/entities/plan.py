@@ -16,6 +16,9 @@ class Plan:
         duration_days: срок действия в днях.
         quota_bytes: квота трафика в байтах на ноду.
         price: цена плана.
+        purchasable: показывать ли план в публичном каталоге мини-аппа.
+            У friends-free всегда False — это внутренний план для своих, не
+            для витрины.
     """
 
     id: str
@@ -24,6 +27,7 @@ class Plan:
     duration_days: int
     quota_bytes: int
     price: Money
+    purchasable: bool = False
 
     def __post_init__(self) -> None:
         if self.fleet_id <= 0:

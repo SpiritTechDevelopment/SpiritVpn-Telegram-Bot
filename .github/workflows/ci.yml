@@ -52,9 +52,6 @@ jobs:
           name: coverage-report
           path: htmlcov
 
-      # Гейт, а не предупреждение, и стоит после выгрузки отчёта: падение шага
-      # пропускает всё следующее без if: always(), и отчёт исчезал бы ровно
-      # тогда, когда по нему нужно разбираться, почему покрытие просело.
       - name: Check coverage threshold
         run: |
           COVERAGE=$(poetry run python -c "
@@ -99,9 +96,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: [test, lint]
 
-    # Единственная линия — Develop: каждый её коммит собирается и едет в среду
-    # develop. Продвижение в prod тегом появится, когда для бота будет
-    # prod-окружение в Infrastructure — пока его нет, строить эту ветку рано.
     if: github.event_name == 'push' && github.ref == 'refs/heads/Develop'
 
     permissions:
@@ -128,9 +122,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Один тег — sha-<коммит>. Плавающего тега по имени ветки нет: он служил
-      # бы только навигации по registry, а идентичность деплоя всё равно несёт
-      # digest, а не тег (см. вывод build-push-action).
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
@@ -141,11 +132,3 @@ jobs:
           cache-to: type=gha,mode=max
           provenance: mode=max
           sbom: true
-
-      # Дальше в этом пайплайне пока ничего нет. Дальше по конвенции этой
-      # организации следовал бы notify-infrastructure — dispatch события с
-      # именем образа и digest в Infrastructure, чтобы там его записали в
-      # desired state и выкатили. Сюда его пока не добавляю: в Infrastructure
-      # нет ни секции под этот компонент в environment.yml, ни Ansible-роли,
-      # ни воркфлоу, который бы такое событие принял (см. README, раздел
-      # «CI/CD»). Добавление этого шага без встречной стороны — мёртвый код.

@@ -24,6 +24,27 @@ class Settings(BaseSettings):
     )
 
     mini_app_url: str = Field(description="публичный URL развёрнутого Telegram Mini App")
+    mini_app_http_port: int = Field(
+        default=8080, description="порт, на котором `python -m spiritvpn_bot api` слушает HTTP"
+    )
+
+    subscription_signing_key: str = Field(
+        description="секрет для подписи токена /s/{token} (SubscriptionTokenSigner)"
+    )
+
+    friends_plan_fleet_id: int = Field(description="vpn_fleet_id для бесплатного плана друзей")
+    friends_plan_quota_bytes: int = Field(
+        default=50 * 1024**3, description="квота трафика на ноду для бесплатного плана"
+    )
+    friends_plan_duration_days: int = Field(
+        default=30, description="срок действия бесплатного плана в днях"
+    )
+    friends_shared_code: str = Field(
+        description=(
+            "общий пароль для бесплатного доступа — только для своих типов, "
+            "никогда не упоминается в публичных ответах бота"
+        )
+    )
 
 
 def load_settings() -> Settings:

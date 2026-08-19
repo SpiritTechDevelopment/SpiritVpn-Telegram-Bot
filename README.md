@@ -1,92 +1,168 @@
 # SpiritVPN Bot
 
-Telegram-бот и mini app, которые продают доступ к SpiritVPN (VLESS + REALITY).
-Общаются с бэкендом `spiritvpnd` по gRPC/mTLS как его «product-сервис»: решают,
-кому какой флот положен, а как это доехало до ноды — уже забота `spiritvpnd`.
+Telegram-бот и mini app для продажи доступа к SpiritVPN (VLESS + REALITY).
+Сервис является product-клиентом бэкенда `spiritvpnd`: обращается к нему по
+gRPC/mTLS, чтобы выдавать и проверять доступ клиентов. Доставка доступа на
+ноды — зона ответственности `spiritvpnd`, не этого репозитория.
+
+## Требования
+
+- Python 3.11–3.13, Poetry 2.x
+- Docker с плагином Compose — локальный Postgres
+- `openssl` — dev-сертификаты для локального `spiritvpnd`, если он нужен
 
 ## Структура
 
-Domain-first, ports & adapters, в том же стиле, что и сам `spiritvpnd`:
+Слоистая архитектура (ports & adapters), в стиле `spiritvpnd`:
 
-- `src/spiritvpn_bot/domain/` — сущности и правила, без ввода-вывода. Здесь
-  живёт машина состояний `Order` и правило монотонности `command_number`.
-- `src/spiritvpn_bot/application/` — use case'ы и `Protocol`-порты, от которых
-  они зависят (`OrderRepository`, `VPNAccessGateway`, `UnitOfWork`, ...).
+- `src/spiritvpn_bot/domain/` — сущности и бизнес-правила, без ввода-вывода.
+  Машина состояний `Order`, правило монотонности `command_number`.
+- `src/spiritvpn_bot/application/` — use case'ы и `Protocol`-порты
+  (`OrderRepository`, `VPNAccessGateway`, `UnitOfWork`).
 - `src/spiritvpn_bot/infrastructure/spiritvpn_grpc/` — mTLS-клиент к
-  spiritvpnd (`client.py`) и `SpiritVPNGateway` (`gateway.py`), реализующий
-  `VPNAccessGateway`: единственное место, где существуют protobuf-типы и коды
-  `grpc.StatusCode`. Postgres и платёжные провайдеры пока не собраны.
-- `src/spiritvpn_bot/presentation/` — aiogram-бот, FastAPI мини-аппа и
-  публичный эндпоинт подписки (`/s/{token}`). Пока не собраны.
-- `proto/spiritvpn/customer/v1/customer.proto` — вендоренный контракт из
-  репозитория SpiritVPN. `src/spiritvpn/` — сгенерированные из него
-  gRPC-стабы (`make proto-gen`); отдельный top-level пакет, не трогать руками.
-- `tests/unit/` — тесты домена и application-слоя: без базы, без сети,
-  самописные фейки (`tests/unit/application/fakes.py`) вместо
-  моко-библиотеки — журнал вызовов фейка позволяет проверять порядок
-  операций, а не только факт вызова.
-- `tests/integration/grpc/` — контрактные тесты `SpiritVPNGateway` против
-  in-process gRPC-сервера на сгенерированных классах: ловят рассинхрон с
-  контрактом на этапе импорта, без staging spiritvpnd и без mTLS.
+  `spiritvpnd` и `SpiritVPNGateway`, реализующий `VPNAccessGateway`.
+- `src/spiritvpn_bot/infrastructure/postgres/` — SQLAlchemy 2.0 async:
+  модели, `SqlAlchemyUnitOfWork`, репозитории.
+- `src/spiritvpn_bot/presentation/telegram_bot/` — aiogram-хендлеры.
+  `/start` — приветствие и кнопка мини-аппа. Бесплатный доступ для своих
+  выдаётся по общему паролю (`RedeemFriendCodeUseCase`): любое текстовое
+  сообщение молча проверяется на совпадение, при несовпадении бот отвечает
+  так же, как на любой другой непонятный текст.
+- `src/spiritvpn_bot/presentation/mini_app_api/` — FastAPI: подписочная
+  ссылка (`/s/{token}`), статус доступа и каталог тарифов для мини-аппа,
+  статическая страница интерфейса (`static/index.html`).
+- `src/spiritvpn_bot/di.py` — композиционный корень.
+- `proto/`, `src/spiritvpn/` — вендоренный `.proto`-контракт и
+  сгенерированные из него gRPC-стабы (`make proto-gen`).
+- `migrations/` — Alembic-миграции.
+- `tests/unit/` — домен, application, presentation; без базы и сети.
+- `tests/integration/grpc/` — контрактные тесты `SpiritVPNGateway`.
+- `tests/integration/postgres/` — тесты Postgres-слоя, гейт
+  `BOT_INTEGRATION_TESTS` + `DATABASE_URL`.
+
+## Конфигурация
+
+Полный список переменных — в `.env.example`; отсутствие или расхождение с
+`config.py` ловит `tests/unit/test_env_example.py`. Для запуска скопируйте
+файл в `.env` и заполните:
+
+| Переменная | Назначение |
+|---|---|
+| `BOT_TELEGRAM_BOT_TOKEN` | токен бота, выдаётся BotFather |
+| `BOT_DATABASE_URL` | адрес собственной БД бота (не БД `spiritvpnd`) |
+| `BOT_SPIRITVPND_GRPC_TARGET` | адрес `spiritvpnd`, `host:port` |
+| `BOT_SPIRITVPND_TLS_CLIENT_CERT_FILE` / `_KEY_FILE` / `BOT_SPIRITVPND_TLS_CA_FILE` | mTLS-сертификаты клиента к `spiritvpnd` |
+| `BOT_SUBSCRIPTION_BASE_URL` | публичный адрес процесса `api`, для ссылок `/s/{token}` |
+| `BOT_MINI_APP_URL` | публичный адрес мини-аппа для кнопки в боте |
+| `BOT_MINI_APP_HTTP_PORT` | порт процесса `api`, по умолчанию 8080 |
+| `BOT_SUBSCRIPTION_SIGNING_KEY` | секрет подписи токена `/s/{token}` |
+| `BOT_FRIENDS_PLAN_FLEET_ID` | `vpn_fleet_id` бесплатного плана, должен существовать в манифесте `spiritvpnd` |
+| `BOT_FRIENDS_SHARED_CODE` | общий пароль для бесплатного доступа |
+
+`BOT_SUBSCRIPTION_BASE_URL` и `BOT_MINI_APP_URL` обязаны быть публичным
+`https`-адресом: Telegram отклоняет инлайн-кнопки на `localhost` и на любой
+недоступный ему адрес целиком, вместе с сообщением. Для локальной разработки
+без деплоя — туннель (`cloudflared tunnel --url http://localhost:$PORT`).
 
 ## Быстрый старт
 
 ```
 make install     # poetry install
 make proto-gen    # сгенерировать gRPC-стабы из proto/
-make dev-db       # локальный Postgres на :5434 для разработки и тестов
-make test         # тесты (постгреса пока не требуют)
+make dev-db       # локальный Postgres на :5434
 ```
 
-Скопируйте `.env.example` в `.env` и заполните значения по мере готовности
-соответствующих частей (токен бота, mTLS-сертификат/ключ/CA для spiritvpnd,
-адрес базы). Для dev-сертификатов к spiritvpnd — `make dev-certs` в
-репозитории SpiritVPN; идентичность клиента там `product-svc`.
+Накатить схему:
 
-## CI/CD
+```
+BOT_DATABASE_URL="postgresql+asyncpg://spiritvpn_bot:spiritvpn_bot@localhost:5434/spiritvpn_bot" \
+  poetry run alembic upgrade head
+```
 
-`.github/workflows/ci.yml`, три job'а, по образцу SpiritVPN и NodeAgent:
+Запуск процессов:
 
-- **test** — `pytest` с покрытием, гейт 80% (сейчас ~89%);
-- **lint** — `ruff check`, `ruff format --check`, `mypy -p spiritvpn_bot`;
-- **images** — только на push в `Develop`, после test и lint: собирает
-  `Dockerfile` и пушит в `ghcr.io/spirittechdevelopment/spiritvpn-bot`, тег
-  `sha-<commit>`. Один тег, без плавающего `develop`/`latest` — та же причина,
-  что у NodeAgent: identity деплоя несёт digest, а не тег, а второй тег только
-  создаёт риск разъехаться.
+```
+poetry run python -m spiritvpn_bot bot   # long polling
+poetry run python -m spiritvpn_bot api   # mini app + /s/{token}
+```
 
-Локально те же проверки — `pre-commit install` один раз, дальше хуки идут
-сами при коммите (`.pre-commit-config.yaml`: hygiene-хуки + `ruff`/`ruff format`;
-`mypy` в pre-commit намеренно не включён, он остаётся в CI — слишком медленный
-для докоммитного хука).
+Выдача бесплатного доступа: клиент отправляет боту текстом значение
+`BOT_FRIENDS_SHARED_CODE`. Пароль общий, не персональный; отозвать доступ
+одному клиенту нельзя — только сменить пароль для всех разом.
 
-### Чего не хватает для реальной выкатки
+## Локальный `spiritvpnd`
 
-Этот репозиторий публикует образ и останавливается — так же, как и
-`spiritvpnd`: «какая версия работает в среде» решает `Infrastructure`, не мы.
-Но, в отличие от `spiritvpnd`, для бота там пока нет принимающей стороны:
+Для полного end-to-end теста (включая реальный вызов `ApplyCustomerAccess`)
+нужен запущенный `spiritvpnd` и манифест с флотом, на который ссылается
+`BOT_FRIENDS_PLAN_FLEET_ID`. Порядок действий — в README репозитория
+`SpiritVPN`, раздел «Быстрый старт» (`make dev`, `make dev-certs`, запуск
+`cmd/spiritvpnd`). Манифест применяется вызовом `ApplyFleetManifest` с ролью
+`manifest-writer`.
 
-- mTLS-идентичность **уже зарезервирована**: `desired/environments/develop/environment.yml`
-  перечисляет `spiffe://spiritvpn/develop/service/customer-service` в
-  `customer_access_writers`/`customer_access_readers`, и в
-  `fleetctl/pki/model.py` есть профиль сертификата `customer-service` — то
-  есть PKI готова выдать нам клиентский сертификат уже сейчас;
-- но в `environment.yml` нет секции под сам компонент (аналога `control:` для
-  spiritvpnd), нет Ansible-роли, которая бы его запускала, и нет workflow,
-  принимающего `repository_dispatch` с образом бота — то, что у backend'а
-  называется `notify-infrastructure` (`SpiritVPN/.github/workflows/ci.yml`).
+Без реального узла (Xray-агента) доступ будет подтверждён на уровне
+`spiritvpnd`, но ссылка останется в состоянии `PENDING` — доставлять доступ
+физически некуда.
 
-Это работа в `Infrastructure`, не здесь — заводить `notify-infrastructure` в
-этом репозитории раньше, чем там появится принимающая сторона, означало бы
-дописать шаг, который дёргает несуществующий обработчик. Как только в
-`Infrastructure` заведут секцию компонента и роль — добавить сюда финальный
-job по образцу `SpiritVPN/.github/workflows/ci.yml:367` займёт пару минут.
+## Тестирование
+
+```
+make test         # unit-тесты, без базы
+```
+
+Postgres-интеграционные тесты — отдельный гейт, не пересекается с
+конфигурацией процесса:
+
+```
+BOT_INTEGRATION_TESTS=1 DATABASE_URL="postgresql+asyncpg://spiritvpn_bot:spiritvpn_bot@localhost:5434/spiritvpn_bot" \
+  poetry run pytest tests/integration/postgres
+```
+
+Локальные проверки перед коммитом — `pre-commit install` один раз, дальше
+хуки запускаются автоматически (`ruff`, `ruff format`; `mypy` — только в CI).
+
+## Git-флоу и релизы
+
+Основная ветка — `Develop`. Изменения вносятся через отдельную ветку и
+pull request в `Develop`; прямые пуши в `Develop` допустимы только на этапе
+до появления промышленной эксплуатации.
+
+На каждый push и pull request запускается `test` и `lint`
+(`.github/workflows/ci.yml`). После их успешного прохождения push в `Develop`
+дополнительно собирает образ и публикует его в
+`ghcr.io/spirittechdevelopment/spiritvpn-bot` с тегом `sha-<commit>`. Плавающего
+тега (`latest`, `develop`) нет: идентичность образа для деплоя — digest, а не
+тег.
+
+Продвижение образа в прод (по тегу `v*`, как у `SpiritVPN`) не реализовано —
+целевого prod-окружения для бота пока нет.
+
+### Выкатка
+
+Репозиторий публикует образ и на этом останавливается. Какая версия
+работает в среде, решает `Infrastructure`, не этот репозиторий. Для бота
+там пока нет принимающей стороны:
+
+- mTLS-идентичность зарезервирована: `spiffe://spiritvpn/develop/service/customer-service`
+  указана в `desired/environments/develop/environment.yml`
+  (`customer_access_writers`/`customer_access_readers`); профиль сертификата
+  `customer-service` есть в `fleetctl/pki/model.py`.
+- В `environment.yml` нет секции под сам компонент, нет Ansible-роли для его
+  запуска и нет workflow, принимающего `repository_dispatch` с образом бота
+  (у `spiritvpnd` это `notify-infrastructure`).
+
+Добавление `notify-infrastructure` в этот репозиторий имеет смысл после
+того, как в `Infrastructure` появится секция компонента, роль и обработчик
+события.
 
 ## Статус
 
-Domain и application слои существуют и покрыты тестами. Собран и
-протестирован контрактными тестами gRPC-клиент к spiritvpnd
-(`CustomerAccessService`). Настроен CI/CD: тесты, линт, публикация образа в
-ghcr.io. Пока не собраны: адаптеры Postgres, платёжный провайдер (Telegram
-Stars), хендлеры aiogram, FastAPI мини-аппа, эндпоинт подписки и фоновые
-воркеры.
+Реализовано: бесплатная выдача доступа по общему паролю, end-to-end, и
+мини-апп как основной интерфейс. Домен, application и Postgres-слой
+покрыты тестами, включая интеграционные тесты на блокировке строк.
+gRPC-клиент к `spiritvpnd` покрыт контрактными тестами. CI/CD публикует
+образ в `ghcr.io`.
+
+Не реализовано: платные планы и оплата (в каталоге только `friends-free`,
+кнопка «Купить» в мини-аппе не завершает покупку), фоновые воркеры
+(напоминание об истечении подписки, синхронизация статуса), продвижение
+образа в прод, приёмная сторона в `Infrastructure`.

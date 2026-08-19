@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SpiritVPN</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: var(--tg-theme-bg-color, #ffffff);
+        --secondary-bg: var(--tg-theme-secondary-bg-color, #f2f2f7);
+        --text: var(--tg-theme-text-color, #111111);
+        --hint: var(--tg-theme-hint-color, #707579);
+        --accent: var(--tg-theme-button-color, #2f8a82);
+        --accent-text: var(--tg-theme-button-text-color, #ffffff);
+        --border: color-mix(in srgb, var(--hint) 25%, transparent);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 1rem 1rem 2.5rem;
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
+      }
+      h1 {
+        font-size: 1.3rem;
+        margin: 0.25rem 0 1rem;
+      }
+      h2 {
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        color: var(--hint);
+        margin: 1.5rem 0 0.5rem;
+      }
+      .card {
+        background: var(--secondary-bg);
+        border-radius: 14px;
+        padding: 1rem;
+      }
+      #status-line {
+        color: var(--hint);
+        margin: 0 0 0.75rem;
+        font-size: 0.92rem;
+      }
+      .server {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.55rem 0;
+        border-bottom: 1px solid var(--border);
+      }
+      .server:last-child {
+        border-bottom: none;
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .dot.ready {
+        background: #2f9c5f;
+      }
+      .dot.pending {
+        background: #c9973f;
+      }
+      .dot.blocked,
+      .dot.failed {
+        background: #b8503f;
+      }
+      .empty-state {
+        color: var(--hint);
+        font-size: 0.92rem;
+        padding: 0.5rem 0;
+      }
+      .plan {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid var(--border);
+      }
+      .plan:last-child {
+        border-bottom: none;
+      }
+      .plan-title {
+        font-weight: 600;
+        font-size: 0.95rem;
+      }
+      .plan-meta {
+        color: var(--hint);
+        font-size: 0.82rem;
+        margin-top: 0.15rem;
+      }
+      .plan button {
+        flex-shrink: 0;
+        margin: 0;
+        width: auto;
+        padding: 0.5rem 1rem;
+        font-size: 0.88rem;
+      }
+      button {
+        margin-top: 0.75rem;
+        width: 100%;
+        padding: 0.8rem;
+        border: none;
+        border-radius: 10px;
+        background: var(--accent);
+        color: var(--accent-text);
+        font-size: 0.95rem;
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.5;
+      }
+      #toast {
+        position: fixed;
+        left: 1rem;
+        right: 1rem;
+        bottom: 1rem;
+        background: var(--text);
+        color: var(--bg);
+        padding: 0.7rem 1rem;
+        border-radius: 10px;
+        font-size: 0.88rem;
+        text-align: center;
+        opacity: 0;
+        transform: translateY(8px);
+        transition:
+          opacity 0.2s,
+          transform 0.2s;
+        pointer-events: none;
+      }
+      #toast.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    </style>
+  </head>
+  <body>
+    <h1>SpiritVPN</h1>
+
+    <section class="card">
+      <p id="status-line">Загрузка…</p>
+      <div id="servers"></div>
+      <button id="copy-btn" style="display: none">Скопировать ссылку подписки</button>
+    </section>
+
+    <h2>Тарифы</h2>
+    <section class="card" id="plans-card">
+      <p class="empty-state" id="plans-empty" style="display: none">
+        Платные тарифы скоро появятся.
+      </p>
+      <div id="plans"></div>
+    </section>
+
+    <div id="toast"></div>
+
+    <script>
+      const tg = window.Telegram.WebApp;
+      tg.ready();
+      tg.expand();
+
+      const STATE_LABEL = {
+        READY: "готов",
+        PENDING: "активируется",
+        BLOCKED: "заблокирован",
+        FAILED: "ошибка",
+      };
+
+      function showToast(text) {
+        const toast = document.getElementById("toast");
+        toast.textContent = text;
+        toast.classList.add("visible");
+        setTimeout(() => toast.classList.remove("visible"), 2000);
+      }
+
+      async function callApi(path) {
+        const res = await fetch(path, {
+          headers: { "X-Telegram-Init-Data": tg.initData },
+        });
+        if (!res.ok) {
+          throw new Error(`${path} -> ${res.status}`);
+        }
+        return res.json();
+      }
+
+      function formatBytes(bytes) {
+        const gib = bytes / 1024 ** 3;
+        return Number.isInteger(gib) ? `${gib} ГБ` : `${gib.toFixed(1)} ГБ`;
+      }
+
+      function formatPrice(amountMinor, currency) {
+        const amount = (amountMinor / 100).toLocaleString("ru-RU");
+        return `${amount} ${currency}`;
+      }
+
+      async function loadSubscriptionStatus() {
+        const statusEl = document.getElementById("status-line");
+        const serversEl = document.getElementById("servers");
+        const copyBtn = document.getElementById("copy-btn");
+
+        const links = await callApi("/api/me/links");
+
+        if (links.length === 0) {
+          statusEl.textContent = "Активной подписки нет — выберите тариф ниже.";
+          return;
+        }
+
+        const ready = links.filter((l) => l.state === "READY").length;
+        statusEl.textContent = `Готово серверов: ${ready} из ${links.length}`;
+
+        for (const link of links) {
+          const row = document.createElement("div");
+          row.className = "server";
+          const dot = document.createElement("span");
+          dot.className = `dot ${link.state.toLowerCase()}`;
+          const label = document.createElement("span");
+          label.textContent = `${link.kind} — ${STATE_LABEL[link.state] ?? link.state}`;
+          row.append(dot, label);
+          serversEl.appendChild(row);
+        }
+
+        const { url } = await callApi("/api/me/subscription-url");
+        copyBtn.style.display = "block";
+        copyBtn.onclick = async () => {
+          await navigator.clipboard.writeText(url);
+          tg.HapticFeedback?.notificationOccurred("success");
+          copyBtn.textContent = "Скопировано";
+          setTimeout(() => {
+            copyBtn.textContent = "Скопировать ссылку подписки";
+          }, 1500);
+        };
+      }
+
+      async function loadPlans() {
+        const plansEl = document.getElementById("plans");
+        const emptyEl = document.getElementById("plans-empty");
+
+        const plans = await fetch("/api/plans").then((r) => r.json());
+
+        if (plans.length === 0) {
+          emptyEl.style.display = "block";
+          return;
+        }
+
+        for (const plan of plans) {
+          const row = document.createElement("div");
+          row.className = "plan";
+
+          const info = document.createElement("div");
+          const title = document.createElement("div");
+          title.className = "plan-title";
+          title.textContent = plan.title;
+          const meta = document.createElement("div");
+          meta.className = "plan-meta";
+          meta.textContent = `${plan.duration_days} дней · ${formatBytes(plan.quota_bytes)} · ${formatPrice(plan.price_amount_minor, plan.price_currency)}`;
+          info.append(title, meta);
+
+          const buyBtn = document.createElement("button");
+          buyBtn.textContent = "Купить";
+          buyBtn.onclick = () => showToast("Оплата скоро будет доступна");
+
+          row.append(info, buyBtn);
+          plansEl.appendChild(row);
+        }
+      }
+
+      async function main() {
+        try {
+          await loadSubscriptionStatus();
+        } catch (err) {
+          document.getElementById("status-line").textContent = "Не удалось загрузить статус подписки.";
+          console.error(err);
+        }
+
+        try {
+          await loadPlans();
+        } catch (err) {
+          console.error(err);
+        }
+      }
+
+      main();
+    </script>
+  </body>
+</html>

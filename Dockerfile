@@ -9,7 +9,14 @@ ENV POETRY_VIRTUALENVS_IN_PROJECT=true \
 
 RUN pip install --no-cache-dir poetry==2.2.1
 
-WORKDIR /src
+# Собирается сразу по конечному пути, а не в /src. Poetry прописывает
+# консольным скриптам абсолютный шебанг на интерпретатор своего venv, и при
+# сборке в /src с последующим копированием в /app он указывает на
+# /src/.venv/bin/python, которого в финальном образе нет. Скрипт при этом
+# существует, а exec отвечает `no such file or directory` — про интерпретатор,
+# а не про скрипт. `python -m ...` это не задевало, поэтому сам бот работал, а
+# `alembic` из того же образа падал.
+WORKDIR /app
 
 COPY pyproject.toml poetry.lock ./
 RUN poetry install --only main --no-root
@@ -30,10 +37,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 
 RUN useradd --system --uid 10001 --create-home --shell /usr/sbin/nologin spiritvpn-bot
 
-COPY --from=build --chown=spiritvpn-bot:spiritvpn-bot /src/.venv /app/.venv
-COPY --from=build --chown=spiritvpn-bot:spiritvpn-bot /src/src /app/src
-COPY --from=build --chown=spiritvpn-bot:spiritvpn-bot /src/migrations /app/migrations
-COPY --from=build --chown=spiritvpn-bot:spiritvpn-bot /src/alembic.ini /app/alembic.ini
+COPY --from=build --chown=spiritvpn-bot:spiritvpn-bot /app/.venv /app/.venv
+COPY --from=build --chown=spiritvpn-bot:spiritvpn-bot /app/src /app/src
+COPY --from=build --chown=spiritvpn-bot:spiritvpn-bot /app/migrations /app/migrations
+COPY --from=build --chown=spiritvpn-bot:spiritvpn-bot /app/alembic.ini /app/alembic.ini
 
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONPATH="/app/src"

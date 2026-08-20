@@ -34,4 +34,16 @@ def test_friends_plan_is_not_in_the_public_storefront() -> None:
         friends_fleet_id=1, friends_quota_bytes=10, friends_duration_days=7
     )
 
-    assert catalog.purchasable() == []
+    assert "friends-free" not in {plan.id for plan in catalog.purchasable()}
+
+
+def test_public_storefront_has_the_two_paid_plans() -> None:
+    catalog = build_plan_catalog(
+        friends_fleet_id=1, friends_quota_bytes=10, friends_duration_days=7
+    )
+
+    purchasable = catalog.purchasable()
+
+    assert {plan.id for plan in purchasable} == {"paid-1m", "paid-3m"}
+    assert all(plan.price.amount_minor > 0 for plan in purchasable)
+    assert all(plan.display_as_unlimited for plan in purchasable)

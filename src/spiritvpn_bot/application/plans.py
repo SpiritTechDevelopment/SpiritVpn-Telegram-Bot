@@ -5,6 +5,8 @@ from spiritvpn_bot.domain.entities.money import Money
 from spiritvpn_bot.domain.entities.plan import Plan
 
 FRIENDS_FREE_PLAN_ID = "friends-free"
+PAID_1_MONTH_PLAN_ID = "paid-1m"
+PAID_3_MONTH_PLAN_ID = "paid-3m"
 
 
 class PlanCatalog:
@@ -49,8 +51,7 @@ def build_plan_catalog(
         friends_duration_days: срок действия бесплатного плана в днях.
 
     Returns:
-        Каталог с одним планом friends-free. Платные планы добавятся сюда
-        же, когда появится первый платёжный провайдер.
+        Каталог с friends-free
     """
     return PlanCatalog(
         {
@@ -61,6 +62,26 @@ def build_plan_catalog(
                 duration_days=friends_duration_days,
                 quota_bytes=friends_quota_bytes,
                 price=Money(0, "RUB"),
-            )
+            ),
+            PAID_1_MONTH_PLAN_ID: Plan(
+                id=PAID_1_MONTH_PLAN_ID,
+                title="1 месяц",
+                fleet_id=friends_fleet_id,  # TODO: реальный fleet_id платных тарифов
+                duration_days=30,
+                quota_bytes=100 * 1024**3,
+                price=Money(10000, "RUB"),
+                purchasable=True,
+                display_as_unlimited=True,
+            ),
+            PAID_3_MONTH_PLAN_ID: Plan(
+                id=PAID_3_MONTH_PLAN_ID,
+                title="3 месяца",
+                fleet_id=friends_fleet_id,  # TODO: реальный fleet_id платных тарифов
+                duration_days=90,
+                quota_bytes=100 * 1024**3,
+                price=Money(30000, "RUB"),
+                purchasable=True,
+                display_as_unlimited=True,
+            ),
         }
     )

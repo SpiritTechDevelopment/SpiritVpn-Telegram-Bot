@@ -155,7 +155,7 @@ def test_plans_endpoint_hides_the_internal_friends_plan() -> None:
     response = client.get("/api/plans")
 
     assert response.status_code == 200
-    assert response.json() == []
+    assert "friends-free" not in {plan["id"] for plan in response.json()}
 
 
 def test_plans_endpoint_requires_no_auth() -> None:
@@ -203,6 +203,7 @@ def test_plans_endpoint_lists_purchasable_plans() -> None:
             "title": "Netherlands, 30 days",
             "duration_days": 30,
             "quota_bytes": 100 * 1024**3,
+            "display_as_unlimited": False,
             "price_amount_minor": 29900,
             "price_currency": "RUB",
         }

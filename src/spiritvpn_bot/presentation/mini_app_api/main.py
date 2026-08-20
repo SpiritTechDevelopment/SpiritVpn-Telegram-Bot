@@ -105,6 +105,7 @@ def create_app(
                 title=plan.title,
                 duration_days=plan.duration_days,
                 quota_bytes=plan.quota_bytes,
+                display_as_unlimited=plan.display_as_unlimited,
                 price_amount_minor=plan.price.amount_minor,
                 price_currency=plan.price.currency,
             )

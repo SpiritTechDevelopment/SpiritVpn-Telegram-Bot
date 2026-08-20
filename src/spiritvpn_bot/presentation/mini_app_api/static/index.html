@@ -297,7 +297,8 @@
           title.textContent = plan.title;
           const meta = document.createElement("div");
           meta.className = "plan-meta";
-          meta.textContent = `${plan.duration_days} дней · ${formatBytes(plan.quota_bytes)} · ${formatPrice(plan.price_amount_minor, plan.price_currency)}`;
+          const quotaText = plan.display_as_unlimited ? "Безлимит" : formatBytes(plan.quota_bytes);
+          meta.textContent = `${plan.duration_days} дней · ${quotaText} · ${formatPrice(plan.price_amount_minor, plan.price_currency)}`;
           info.append(title, meta);
 
           const buyBtn = document.createElement("button");

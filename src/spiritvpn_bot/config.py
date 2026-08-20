@@ -34,7 +34,7 @@ class Settings(BaseSettings):
 
     friends_plan_fleet_id: int = Field(description="vpn_fleet_id для бесплатного плана друзей")
     friends_plan_quota_bytes: int = Field(
-        default=50 * 1024**3, description="квота трафика на ноду для бесплатного плана"
+        default=100 * 1024**3, description="квота трафика на ноду для бесплатного плана"
     )
     friends_plan_duration_days: int = Field(
         default=30, description="срок действия бесплатного плана в днях"

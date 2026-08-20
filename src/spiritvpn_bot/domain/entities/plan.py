@@ -19,6 +19,10 @@ class Plan:
         purchasable: показывать ли план в публичном каталоге мини-аппа.
             У friends-free всегда False — это внутренний free план, не
             для клиентов.
+        display_as_unlimited: показывать квоту клиенту как «Безлимит»,
+            не выводя число. quota_bytes при этом всё равно нужен и
+            остаётся реальным — это только про то, что видит клиент,
+            usage_quota_bytes у spiritvpnd всегда положительное число.
     """
 
     id: str
@@ -28,6 +32,7 @@ class Plan:
     quota_bytes: int
     price: Money
     purchasable: bool = False
+    display_as_unlimited: bool = False
 
     def __post_init__(self) -> None:
         if self.fleet_id <= 0:

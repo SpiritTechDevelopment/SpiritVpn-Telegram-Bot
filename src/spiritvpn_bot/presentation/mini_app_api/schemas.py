@@ -25,5 +25,6 @@ class PlanOut(BaseModel):
     title: str
     duration_days: int
     quota_bytes: int
+    display_as_unlimited: bool
     price_amount_minor: int
     price_currency: str

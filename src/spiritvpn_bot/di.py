@@ -8,6 +8,7 @@ from spiritvpn_bot.application.plans import PlanCatalog, build_plan_catalog
 from spiritvpn_bot.application.ports.clock import Clock
 from spiritvpn_bot.application.ports.event_bus import EventPublisher
 from spiritvpn_bot.application.ports.ids import IdGenerator
+from spiritvpn_bot.application.ports.updates_guard import UpdatesGuard
 from spiritvpn_bot.application.ports.vpn_gateway import VPNAccessGateway
 from spiritvpn_bot.application.subscription_token import SubscriptionTokenSigner
 from spiritvpn_bot.application.use_cases.confirm_payment import ConfirmPaymentUseCase
@@ -21,6 +22,7 @@ from spiritvpn_bot.infrastructure.events.logging_publisher import LoggingEventPu
 from spiritvpn_bot.infrastructure.ids import UuidIdGenerator
 from spiritvpn_bot.infrastructure.postgres.engine import build_engine, build_session_factory
 from spiritvpn_bot.infrastructure.postgres.unit_of_work import SqlAlchemyUnitOfWork
+from spiritvpn_bot.infrastructure.postgres.updates_guard import PostgresUpdatesGuard
 from spiritvpn_bot.infrastructure.spiritvpn_grpc.client import build_customer_access_stub
 from spiritvpn_bot.infrastructure.spiritvpn_grpc.gateway import SpiritVPNGateway
 
@@ -37,6 +39,7 @@ class Container:
     clock: Clock
     id_generator: IdGenerator
     events: EventPublisher
+    updates_guard: UpdatesGuard
 
     def _new_uow(self) -> SqlAlchemyUnitOfWork:
         return SqlAlchemyUnitOfWork(self.session_factory)
@@ -98,4 +101,5 @@ def build_container(settings: Settings | None = None) -> Container:
         clock=SystemClock(),
         id_generator=UuidIdGenerator(),
         events=LoggingEventPublisher(),
+        updates_guard=PostgresUpdatesGuard(session_factory),
     )

@@ -80,7 +80,7 @@ def test_my_links_rejects_forged_init_data() -> None:
 def test_my_links_returns_link_statuses_without_uri() -> None:
     gateway = FakeVPNAccessGateway()
     gateway.links_by_customer["tg:42"] = [
-        AccessLink(kind="FREEDOM", state="READY", uri="vless://secret"),
+        AccessLink(kind="FREEDOM", state="READY", uri="vless://secret#Amsterdam"),
         AccessLink(kind="BRIDGE", state="BLOCKED", block_reason="TIME_EXPIRED"),
     ]
     client = make_client(gateway)
@@ -91,8 +91,8 @@ def test_my_links_returns_link_statuses_without_uri() -> None:
     assert response.status_code == 200
     body = response.json()
     assert body == [
-        {"kind": "FREEDOM", "state": "READY", "block_reason": None},
-        {"kind": "BRIDGE", "state": "BLOCKED", "block_reason": "TIME_EXPIRED"},
+        {"kind": "FREEDOM", "state": "READY", "label": "Amsterdam", "block_reason": None},
+        {"kind": "BRIDGE", "state": "BLOCKED", "label": None, "block_reason": "TIME_EXPIRED"},
     ]
     assert "secret" not in response.text
 

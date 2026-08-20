@@ -222,16 +222,17 @@
         const ready = links.filter((l) => l.state === "READY").length;
         statusEl.textContent = `Готово серверов: ${ready} из ${links.length}`;
 
-        for (const link of links) {
+        links.forEach((link, index) => {
           const row = document.createElement("div");
           row.className = "server";
           const dot = document.createElement("span");
           dot.className = `dot ${link.state.toLowerCase()}`;
           const label = document.createElement("span");
-          label.textContent = `${link.kind} — ${STATE_LABEL[link.state] ?? link.state}`;
+          const name = link.label ?? `Сервер ${index + 1}`;
+          label.textContent = `${name} — ${STATE_LABEL[link.state] ?? link.state}`;
           row.append(dot, label);
           serversEl.appendChild(row);
-        }
+        });
 
         const { url } = await callApi("/api/me/subscription-url");
         copyBtn.style.display = "block";

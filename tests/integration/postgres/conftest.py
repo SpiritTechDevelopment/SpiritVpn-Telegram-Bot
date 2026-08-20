@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from spiritvpn_bot.infrastructure.postgres.engine import build_engine, build_session_factory
 from spiritvpn_bot.infrastructure.postgres.unit_of_work import SqlAlchemyUnitOfWork
 
-_TRUNCATED_TABLES = ("orders", "customer_command_sequences")
+_TRUNCATED_TABLES = ("orders", "customer_command_sequences", "processed_telegram_updates")
 
 
 def _database_url() -> str | None:

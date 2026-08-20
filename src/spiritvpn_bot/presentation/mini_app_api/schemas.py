@@ -10,6 +10,7 @@ class LinkStatusOut(BaseModel):
 
     kind: AccessKind
     state: AccessState
+    label: str | None = None
     block_reason: BlockReason | None = None
 
 

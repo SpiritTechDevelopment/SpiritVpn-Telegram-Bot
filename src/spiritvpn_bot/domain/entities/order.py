@@ -22,6 +22,8 @@ class OrderStatus(str, Enum):
     REFUNDED = "REFUNDED"
 
 
+# Словарь разрешённых переходов между статусами заказа.
+# Ключ — текущий статус, значение — множество разрешённых целевых статусов.
 _ALLOWED_TRANSITIONS: dict[OrderStatus, frozenset[OrderStatus]] = {
     OrderStatus.CREATED: frozenset({OrderStatus.AWAITING_PAYMENT, OrderStatus.CANCELLED}),
     OrderStatus.AWAITING_PAYMENT: frozenset({OrderStatus.PAID, OrderStatus.CANCELLED}),

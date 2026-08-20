@@ -40,5 +40,5 @@ class SubscriptionTokenSigner:
             return None
 
     def _signature(self, payload: bytes) -> str:
-        digest = hmac.new(self._signing_key, payload, hashlib.sha256).hexdigest()
-        return digest[:32]
+        digest = hmac.new(self._signing_key, payload, hashlib.sha256).digest()[:12]
+        return base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")

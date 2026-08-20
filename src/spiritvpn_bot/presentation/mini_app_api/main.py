@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from urllib.parse import unquote, urlsplit
 
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import PlainTextResponse
@@ -10,6 +11,7 @@ from spiritvpn_bot.application.builders.subscription_content_builder import (
     build_subscription_content,
 )
 from spiritvpn_bot.application.plans import PlanCatalog
+from spiritvpn_bot.application.ports.vpn_gateway import AccessLink
 from spiritvpn_bot.application.subscription_token import SubscriptionTokenSigner
 from spiritvpn_bot.application.use_cases.get_my_links import GetMyLinksUseCase
 from spiritvpn_bot.presentation.mini_app_api.auth import InitDataError, validate_init_data
@@ -20,6 +22,19 @@ from spiritvpn_bot.presentation.mini_app_api.schemas import (
 )
 
 _STATIC_DIR = Path(__file__).parent / "static"
+
+
+def _link_label(link: AccessLink) -> str | None:
+    """Имя ссылки из фрагмента vless://...#имя, если оно есть.
+    Args:
+        link: объект ссылки.
+    Returns:
+        Имя ссылки или None, если его нет.
+    """
+    if not link.uri:
+        return None
+    fragment = urlsplit(link.uri).fragment
+    return unquote(fragment) or None
 
 
 def create_app(
@@ -68,7 +83,12 @@ def create_app(
         customer_id = _authenticate(x_telegram_init_data)
         links = await get_my_links.execute(customer_id=customer_id)
         return [
-            LinkStatusOut(kind=link.kind, state=link.state, block_reason=link.block_reason)
+            LinkStatusOut(
+                kind=link.kind,
+                state=link.state,
+                label=_link_label(link),
+                block_reason=link.block_reason,
+            )
             for link in links
         ]
 

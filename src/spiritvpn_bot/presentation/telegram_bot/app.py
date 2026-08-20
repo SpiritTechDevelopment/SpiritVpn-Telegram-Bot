@@ -2,12 +2,15 @@ from __future__ import annotations
 
 from aiogram import Bot, Dispatcher
 
+from spiritvpn_bot.application.ports.updates_guard import UpdatesGuard
 from spiritvpn_bot.di import Container
 from spiritvpn_bot.presentation.telegram_bot.handlers.start import router as start_router
+from spiritvpn_bot.presentation.telegram_bot.middlewares.dedup import DedupUpdatesMiddleware
 
 
-def build_dispatcher() -> Dispatcher:
+def build_dispatcher(*, updates_guard: UpdatesGuard) -> Dispatcher:
     dp = Dispatcher()
+    dp.update.outer_middleware(DedupUpdatesMiddleware(updates_guard))
     dp.include_router(start_router)
     return dp
 
@@ -19,7 +22,7 @@ async def run_bot(container: Container) -> None:
         container: собранный композиционный корень (см. di.py).
     """
     bot = Bot(token=container.settings.telegram_bot_token)
-    dp = build_dispatcher()
+    dp = build_dispatcher(updates_guard=container.updates_guard)
     await dp.start_polling(
         bot,
         redeem_friend_code_factory=container.redeem_friend_code_use_case,

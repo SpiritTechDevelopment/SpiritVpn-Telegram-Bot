@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from spiritvpn_bot.presentation.telegram_bot.app import build_dispatcher
 from spiritvpn_bot.presentation.telegram_bot.handlers.start import router as start_router
+from tests.unit.application.fakes import InMemoryUpdatesGuard
 
 
 def test_build_dispatcher_includes_start_router() -> None:
-    dp = build_dispatcher()
+    dp = build_dispatcher(updates_guard=InMemoryUpdatesGuard())
 
     assert start_router in dp.sub_routers

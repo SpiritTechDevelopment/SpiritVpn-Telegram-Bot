@@ -155,3 +155,14 @@ class FakeEventPublisher:
     async def publish(self, event: object) -> None:
         self.published.append(event)
         self.journal.append(f"publish:{type(event).__name__}")
+
+
+class InMemoryUpdatesGuard:
+    def __init__(self) -> None:
+        self._seen: set[int] = set()
+
+    async def mark_if_new(self, update_id: int) -> bool:
+        if update_id in self._seen:
+            return False
+        self._seen.add(update_id)
+        return True

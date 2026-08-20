@@ -54,6 +54,16 @@ class OrderRow(Base):
     price_currency: Mapped[str] = mapped_column(String, nullable=False)
 
 
+class ProcessedTelegramUpdateRow(Base):
+    """update_id уже обработанных Telegram апдейтов.
+    """
+
+    __tablename__ = "processed_telegram_updates"
+
+    update_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    processed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class CommandSequenceRow(Base):
     """Последний выданный command_number на customer_id.
 

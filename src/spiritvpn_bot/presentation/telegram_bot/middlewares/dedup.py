@@ -10,8 +10,7 @@ from spiritvpn_bot.application.ports.updates_guard import UpdatesGuard
 
 
 class DedupUpdatesMiddleware(BaseMiddleware):
-    """Отбрасывает Telegram-апдейт, который уже был обработан.
-    """
+    """Отбрасывает Telegram-апдейт, который уже был обработан."""
 
     def __init__(self, guard: UpdatesGuard) -> None:
         self._guard = guard

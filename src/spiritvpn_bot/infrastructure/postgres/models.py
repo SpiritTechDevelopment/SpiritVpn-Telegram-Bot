@@ -55,8 +55,7 @@ class OrderRow(Base):
 
 
 class ProcessedTelegramUpdateRow(Base):
-    """update_id уже обработанных Telegram апдейтов.
-    """
+    """update_id уже обработанных Telegram апдейтов."""
 
     __tablename__ = "processed_telegram_updates"
 

@@ -7,6 +7,9 @@ from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject, Update
 
 from spiritvpn_bot.application.ports.updates_guard import UpdatesGuard
+from spiritvpn_bot.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 class DedupUpdatesMiddleware(BaseMiddleware):
@@ -23,5 +26,6 @@ class DedupUpdatesMiddleware(BaseMiddleware):
     ) -> Any:
         assert isinstance(event, Update)
         if not await self._guard.mark_if_new(event.update_id):
+            logger.warning("duplicate_update_skipped", update_id=event.update_id)
             return None
         return await handler(event, data)

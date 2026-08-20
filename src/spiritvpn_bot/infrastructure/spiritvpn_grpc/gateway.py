@@ -32,6 +32,7 @@ from spiritvpn_bot.application.ports.vpn_gateway import (
     AccessState,
     BlockReason,
 )
+from spiritvpn_bot.logging import get_logger
 
 _KIND_FROM_PB: dict[int, AccessKind] = {
     PbAccessKind.ACCESS_KIND_FREEDOM: "FREEDOM",
@@ -54,6 +55,8 @@ _FAILED_PRECONDITION_APPLY_ERRORS: dict[str, type[VPNGatewayError]] = {
     "customer уже привязан к другому fleet": FleetMismatch,
     "сокращение expires_at не поддерживается": ExpiryRegression,
 }
+
+logger = get_logger(__name__)
 
 
 class SpiritVPNGateway:
@@ -83,18 +86,32 @@ class SpiritVPNGateway:
             expires_at_epoch_sec=int(expires_at.timestamp()),
             command_number=command_number,
         )
+        log = logger.bind(customer_id=customer_id, fleet_id=fleet_id, command_number=command_number)
+        log.info("apply_customer_access_call")
         try:
             await self._stub.ApplyCustomerAccess(request)
         except grpc.aio.AioRpcError as exc:
+            log.warning(
+                "apply_customer_access_failed", grpc_code=exc.code().name, details=exc.details()
+            )
             raise _translate_apply_error(exc) from exc
+        log.info("apply_customer_access_ok")
 
     async def get_links(self, *, customer_id: str) -> list[AccessLink]:
         request = GetCustomerAccessLinksRequest(customer_id=customer_id)
+        log = logger.bind(customer_id=customer_id)
         try:
             response = await self._stub.GetCustomerAccessLinks(request)
         except grpc.aio.AioRpcError as exc:
+            log.warning(
+                "get_customer_access_links_failed",
+                grpc_code=exc.code().name,
+                details=exc.details(),
+            )
             raise _translate_get_links_error(exc) from exc
-        return [_to_access_link(link) for link in response.links]
+        links = [_to_access_link(link) for link in response.links]
+        log.info("get_customer_access_links_ok", link_count=len(links))
+        return links
 
 
 def _to_access_link(link: CustomerAccessLink) -> AccessLink:

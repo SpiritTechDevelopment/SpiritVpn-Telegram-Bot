@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import structlog
+from spiritvpn_bot.logging import get_logger
 
-logger = structlog.get_logger(__name__)
+logger = get_logger(__name__)
 
 
 class LoggingEventPublisher:

@@ -13,6 +13,7 @@ from spiritvpn_bot.application.plans import PlanCatalog
 from spiritvpn_bot.application.ports.vpn_gateway import AccessLink
 from spiritvpn_bot.application.subscription_token import SubscriptionTokenSigner
 from spiritvpn_bot.application.use_cases.get_my_links import GetMyLinksUseCase
+from spiritvpn_bot.logging import get_logger
 from spiritvpn_bot.presentation.mini_app_api.auth import InitDataError, validate_init_data
 from spiritvpn_bot.presentation.mini_app_api.schemas import (
     LinkStatusOut,
@@ -21,6 +22,8 @@ from spiritvpn_bot.presentation.mini_app_api.schemas import (
 )
 
 _STATIC_DIR = Path(__file__).parent / "static"
+
+logger = get_logger(__name__)
 
 
 def _link_label(link: AccessLink) -> str | None:
@@ -62,6 +65,7 @@ def create_app(
         try:
             user_id = validate_init_data(x_telegram_init_data, bot_token=bot_token)
         except InitDataError as exc:
+            logger.warning("init_data_rejected", error=str(exc))
             raise HTTPException(status_code=401, detail=str(exc)) from exc
         return f"tg:{user_id}"
 
@@ -73,6 +77,7 @@ def create_app(
     async def subscription(token: str) -> str:
         customer_id = token_signer.verify(token)
         if customer_id is None:
+            logger.warning("subscription_token_rejected")
             raise HTTPException(status_code=404)
         links = await get_my_links.execute(customer_id=customer_id)
         return build_subscription_content(links).decode("ascii")

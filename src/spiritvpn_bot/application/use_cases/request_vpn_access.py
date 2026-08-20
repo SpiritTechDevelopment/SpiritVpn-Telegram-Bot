@@ -6,6 +6,9 @@ from spiritvpn_bot.application.ports.unit_of_work import UnitOfWork
 from spiritvpn_bot.application.ports.vpn_gateway import VPNAccessGateway
 from spiritvpn_bot.domain.entities.order import Order, OrderStatus
 from spiritvpn_bot.domain.events import AccessRequested
+from spiritvpn_bot.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 class RequestAccessUseCase:
@@ -47,13 +50,19 @@ class RequestAccessUseCase:
         assert order.command_number is not None
         assert order.expires_at is not None
 
-        await self._gateway.apply_access(
-            customer_id=order.customer_id,
-            fleet_id=order.plan.fleet_id,
-            quota_bytes=order.plan.quota_bytes,
-            expires_at=order.expires_at,
-            command_number=order.command_number,
-        )
+        log = logger.bind(order_id=order.id, customer_id=order.customer_id)
+        log.info("access_requested", plan_id=order.plan.id)
+        try:
+            await self._gateway.apply_access(
+                customer_id=order.customer_id,
+                fleet_id=order.plan.fleet_id,
+                quota_bytes=order.plan.quota_bytes,
+                expires_at=order.expires_at,
+                command_number=order.command_number,
+            )
+        except Exception:
+            log.exception("access_request_failed")
+            raise
 
         await self._events.publish(
             AccessRequested(

@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="BOT_", env_file=".env", extra="ignore")
 
     telegram_bot_token: str
+    log_level: str = Field(default="INFO", description="уровень логирования, например INFO, DEBUG")
     database_url: str = Field(
         description="postgresql+asyncpg://... — своя база бота, не база spiritvpnd"
     )

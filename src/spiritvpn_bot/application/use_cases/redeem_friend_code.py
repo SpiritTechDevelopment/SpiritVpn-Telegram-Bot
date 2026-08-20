@@ -11,6 +11,9 @@ from spiritvpn_bot.application.ports.unit_of_work import UnitOfWork
 from spiritvpn_bot.application.use_cases._shared import assign_command_number_and_mark_paid
 from spiritvpn_bot.domain.entities.order import Order
 from spiritvpn_bot.domain.events import OrderPaid
+from spiritvpn_bot.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 class RedeemFriendCodeUseCase:
@@ -46,6 +49,7 @@ class RedeemFriendCodeUseCase:
         submitted = submitted_code.strip().encode("utf-8")
         expected = self._shared_code.encode("utf-8")
         if not hmac.compare_digest(submitted, expected):
+            logger.debug("friend_code_no_match", customer_id=customer_id)
             return None
 
         plan = self._plans.get(FRIENDS_FREE_PLAN_ID)
@@ -78,4 +82,5 @@ class RedeemFriendCodeUseCase:
                 expires_at=order.expires_at,
             )
         )
+        logger.info("friend_code_redeemed", customer_id=customer_id, order_id=order.id)
         return order

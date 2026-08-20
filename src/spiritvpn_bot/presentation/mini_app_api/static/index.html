@@ -7,18 +7,26 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap"
     />
     <style>
       :root {
         color-scheme: light dark;
-        --bg: var(--tg-theme-bg-color, #ffffff);
-        --text: var(--tg-theme-text-color, #111111);
-        --hint: var(--tg-theme-hint-color, #707579);
+        --bg: #ffffff;
+        --text: #15161a;
+        --hint: #75787f;
         --accent: #2f8a82;
         --accent-text: #ffffff;
-        --border: color-mix(in srgb, var(--hint) 25%, transparent);
-        --accent-shadow: color-mix(in srgb, var(--accent) 30%, transparent);
+        --border: rgba(20, 20, 22, 0.08);
+        --accent-shadow: rgba(47, 138, 130, 0.3);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #161717;
+          --text: #f3f3f2;
+          --hint: #8c8f94;
+          --border: rgba(255, 255, 255, 0.1);
+        }
       }
       * {
         box-sizing: border-box;
@@ -33,17 +41,10 @@
         flex-direction: column;
         gap: 1.75rem;
       }
-      h1 {
-        font-family: "Unbounded", "Onest", sans-serif;
-        font-size: 1.2rem;
-        font-weight: 700;
-        letter-spacing: -0.01em;
-        margin: 0;
-      }
       .subtitle {
         font-size: 0.82rem;
         color: var(--hint);
-        margin: 0.2rem 0 0;
+        margin: 0;
       }
       .kicker {
         font-size: 0.69rem;
@@ -175,10 +176,7 @@
     </style>
   </head>
   <body>
-    <div>
-      <h1>SpiritVPN</h1>
-      <p class="subtitle">Управление подпиской</p>
-    </div>
+    <p class="subtitle">Управление подпиской</p>
 
     <section class="card">
       <p class="kicker">Статус</p>

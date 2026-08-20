@@ -40,8 +40,8 @@ def test_health() -> None:
 def test_subscription_endpoint_returns_base64_of_ready_links() -> None:
     gateway = FakeVPNAccessGateway()
     gateway.links_by_customer["tg:42"] = [
-        AccessLink(kind="FREEDOM", state="READY", uri="vless://x@nl.example.com:443#NL"),
-        AccessLink(kind="FREEDOM", state="PENDING"),
+        AccessLink(kind="BRIDGE", state="READY", uri="vless://x@nl.example.com:443#NL"),
+        AccessLink(kind="BRIDGE", state="PENDING"),
     ]
     signer = SubscriptionTokenSigner(SIGNING_KEY)
     client = make_client(gateway)
@@ -80,7 +80,7 @@ def test_my_links_rejects_forged_init_data() -> None:
 def test_my_links_returns_link_statuses_without_uri() -> None:
     gateway = FakeVPNAccessGateway()
     gateway.links_by_customer["tg:42"] = [
-        AccessLink(kind="FREEDOM", state="READY", uri="vless://secret#Amsterdam"),
+        AccessLink(kind="BRIDGE", state="READY", uri="vless://secret#Amsterdam"),
         AccessLink(kind="BRIDGE", state="BLOCKED", block_reason="TIME_EXPIRED"),
     ]
     client = make_client(gateway)
@@ -91,10 +91,28 @@ def test_my_links_returns_link_statuses_without_uri() -> None:
     assert response.status_code == 200
     body = response.json()
     assert body == [
-        {"kind": "FREEDOM", "state": "READY", "label": "Amsterdam", "block_reason": None},
+        {"kind": "BRIDGE", "state": "READY", "label": "Amsterdam", "block_reason": None},
         {"kind": "BRIDGE", "state": "BLOCKED", "label": None, "block_reason": "TIME_EXPIRED"},
     ]
     assert "secret" not in response.text
+
+
+def test_my_links_hides_freedom_links() -> None:
+    # FREEDOM идёт мимо ноды, скрывающей трафик — клиенту показывать нельзя
+    gateway = FakeVPNAccessGateway()
+    gateway.links_by_customer["tg:42"] = [
+        AccessLink(kind="FREEDOM", state="READY", uri="vless://freedom#Amsterdam"),
+        AccessLink(kind="BRIDGE", state="READY", uri="vless://bridge#Amsterdam"),
+    ]
+    client = make_client(gateway)
+    init_data = sign_init_data(valid_fields(user_id=42))
+
+    response = client.get("/api/me/links", headers={"X-Telegram-Init-Data": init_data})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["kind"] == "BRIDGE"
 
 
 def test_my_subscription_url_matches_signed_token() -> None:

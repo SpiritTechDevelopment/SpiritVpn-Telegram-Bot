@@ -111,7 +111,6 @@ def create_app(
             for plan in plans.purchasable()
         ]
 
-
     index_html = (_STATIC_DIR / "index.html").read_text(encoding="utf-8")
 
     @app.get("/", response_class=HTMLResponse)

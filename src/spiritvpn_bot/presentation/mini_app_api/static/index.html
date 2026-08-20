@@ -5,63 +5,74 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>SpiritVPN</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@700&display=swap"
+    />
     <style>
       :root {
         color-scheme: light dark;
         --bg: var(--tg-theme-bg-color, #ffffff);
-        --secondary-bg: var(--tg-theme-secondary-bg-color, #f2f2f7);
         --text: var(--tg-theme-text-color, #111111);
         --hint: var(--tg-theme-hint-color, #707579);
         --accent: var(--tg-theme-button-color, #2f8a82);
         --accent-text: var(--tg-theme-button-text-color, #ffffff);
         --border: color-mix(in srgb, var(--hint) 25%, transparent);
+        --accent-shadow: color-mix(in srgb, var(--accent) 30%, transparent);
       }
       * {
         box-sizing: border-box;
       }
       body {
         margin: 0;
-        padding: 1rem 1rem 2.5rem;
+        padding: 1.5rem 1.25rem 2.5rem;
         background: var(--bg);
         color: var(--text);
-        font-family:
-          -apple-system,
-          BlinkMacSystemFont,
-          "Segoe UI",
-          Roboto,
-          sans-serif;
+        font-family: "Onest", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        display: flex;
+        flex-direction: column;
+        gap: 1.75rem;
       }
       h1 {
-        font-size: 1.3rem;
-        margin: 0.25rem 0 1rem;
+        font-family: "Unbounded", "Onest", sans-serif;
+        font-size: 1.2rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        margin: 0;
       }
-      h2 {
-        font-size: 0.85rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.03em;
+      .subtitle {
+        font-size: 0.82rem;
         color: var(--hint);
-        margin: 1.5rem 0 0.5rem;
+        margin: 0.2rem 0 0;
       }
-      .card {
-        background: var(--secondary-bg);
-        border-radius: 14px;
-        padding: 1rem;
-      }
-      #status-line {
+      .kicker {
+        font-size: 0.69rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
         color: var(--hint);
         margin: 0 0 0.75rem;
-        font-size: 0.92rem;
+      }
+      .card {
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 1.1rem;
+      }
+      #status-line {
+        font-size: 1rem;
+        font-weight: 600;
+        margin: 0 0 1.1rem;
+      }
+      #servers {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        margin-bottom: 1.1rem;
       }
       .server {
         display: flex;
         align-items: center;
         gap: 0.6rem;
-        padding: 0.55rem 0;
-        border-bottom: 1px solid var(--border);
-      }
-      .server:last-child {
-        border-bottom: none;
       }
       .dot {
         width: 8px;
@@ -84,16 +95,18 @@
         font-size: 0.92rem;
         padding: 0.5rem 0;
       }
+      #plans {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
       .plan {
         display: flex;
-        justify-content: space-between;
         align-items: center;
         gap: 0.75rem;
-        padding: 0.75rem 0;
-        border-bottom: 1px solid var(--border);
-      }
-      .plan:last-child {
-        border-bottom: none;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 0.9rem 1rem;
       }
       .plan-title {
         font-weight: 600;
@@ -101,29 +114,41 @@
       }
       .plan-meta {
         color: var(--hint);
-        font-size: 0.82rem;
-        margin-top: 0.15rem;
+        font-size: 0.8rem;
+        margin-top: 0.2rem;
+      }
+      .plan-info {
+        flex-grow: 1;
       }
       .plan button {
         flex-shrink: 0;
-        margin: 0;
         width: auto;
-        padding: 0.5rem 1rem;
-        font-size: 0.88rem;
+        margin: 0;
+        border-radius: 999px;
+        padding: 0.62rem 1.1rem;
+        font-size: 0.85rem;
       }
       button {
-        margin-top: 0.75rem;
         width: 100%;
-        padding: 0.8rem;
+        padding: 0.85rem;
         border: none;
-        border-radius: 10px;
+        border-radius: 999px;
         background: var(--accent);
         color: var(--accent-text);
-        font-size: 0.95rem;
+        font-family: inherit;
+        font-size: 0.92rem;
+        font-weight: 600;
         cursor: pointer;
+        transition: opacity 0.15s;
+      }
+      button:hover {
+        opacity: 0.88;
       }
       button:disabled {
         opacity: 0.5;
+      }
+      #copy-btn {
+        box-shadow: 0 8px 20px -8px var(--accent-shadow);
       }
       #toast {
         position: fixed;
@@ -150,16 +175,20 @@
     </style>
   </head>
   <body>
-    <h1>SpiritVPN</h1>
+    <div>
+      <h1>SpiritVPN</h1>
+      <p class="subtitle">Управление подпиской</p>
+    </div>
 
     <section class="card">
+      <p class="kicker">Статус</p>
       <p id="status-line">Загрузка…</p>
       <div id="servers"></div>
       <button id="copy-btn" style="display: none">Скопировать ссылку подписки</button>
     </section>
 
-    <h2>Тарифы</h2>
-    <section class="card" id="plans-card">
+    <section>
+      <p class="kicker">Тарифы</p>
       <p class="empty-state" id="plans-empty" style="display: none">
         Платные тарифы скоро появятся.
       </p>
@@ -262,6 +291,7 @@
           row.className = "plan";
 
           const info = document.createElement("div");
+          info.className = "plan-info";
           const title = document.createElement("div");
           title.className = "plan-title";
           title.textContent = plan.title;

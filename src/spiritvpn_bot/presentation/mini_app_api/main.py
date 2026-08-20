@@ -4,8 +4,7 @@ from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
 from fastapi import FastAPI, Header, HTTPException
-from fastapi.responses import PlainTextResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse, PlainTextResponse
 
 from spiritvpn_bot.application.builders.subscription_content_builder import (
     build_subscription_content,
@@ -112,6 +111,11 @@ def create_app(
             for plan in plans.purchasable()
         ]
 
-    app.mount("/", StaticFiles(directory=_STATIC_DIR, html=True), name="static")
+
+    index_html = (_STATIC_DIR / "index.html").read_text(encoding="utf-8")
+
+    @app.get("/", response_class=HTMLResponse)
+    async def mini_app_page() -> HTMLResponse:
+        return HTMLResponse(content=index_html, headers={"Cache-Control": "no-store"})
 
     return app

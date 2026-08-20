@@ -121,6 +121,14 @@ def test_static_index_page_is_served() -> None:
     assert "SpiritVPN" in response.text
 
 
+def test_static_index_page_is_not_cached() -> None:
+    client = make_client(FakeVPNAccessGateway())
+
+    response = client.get("/")
+
+    assert response.headers["cache-control"] == "no-store"
+
+
 def test_plans_endpoint_hides_the_internal_friends_plan() -> None:
     # friends-free существует в каталоге, но не должен светиться в
     # публичной витрине мини-аппа — это не для клиентов

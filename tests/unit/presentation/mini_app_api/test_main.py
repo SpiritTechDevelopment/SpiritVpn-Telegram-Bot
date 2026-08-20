@@ -97,8 +97,7 @@ def test_my_links_returns_link_statuses_without_uri() -> None:
     assert "secret" not in response.text
 
 
-def test_my_links_hides_freedom_links() -> None:
-    # FREEDOM идёт мимо ноды, скрывающей трафик — клиенту показывать нельзя
+def test_my_links_returns_both_kinds() -> None:
     gateway = FakeVPNAccessGateway()
     gateway.links_by_customer["tg:42"] = [
         AccessLink(kind="FREEDOM", state="READY", uri="vless://freedom#Amsterdam"),
@@ -111,8 +110,7 @@ def test_my_links_hides_freedom_links() -> None:
 
     assert response.status_code == 200
     body = response.json()
-    assert len(body) == 1
-    assert body[0]["kind"] == "BRIDGE"
+    assert {link["kind"] for link in body} == {"FREEDOM", "BRIDGE"}
 
 
 def test_my_subscription_url_matches_signed_token() -> None:

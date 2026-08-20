@@ -11,17 +11,15 @@ class GetMyLinksUseCase:
         self._gateway = gateway
 
     async def execute(self, *, customer_id: str) -> list[AccessLink]:
-        """Возвращает ссылки клиента, готовые для выдачи наружу.
+        """Возвращает ссылки клиента.
 
         Args:
             customer_id: ID клиента.
 
         Returns:
-            Только BRIDGE-ссылки: FREEDOM идет мимо ru ноды,
-            ее не нужно возвращать.
+            Все текущие ссылки клиента, любого kind.
         """
         try:
-            links = await self._gateway.get_links(customer_id=customer_id)
+            return await self._gateway.get_links(customer_id=customer_id)
         except CustomerNotFound:
             return []
-        return [link for link in links if link.kind == "BRIDGE"]

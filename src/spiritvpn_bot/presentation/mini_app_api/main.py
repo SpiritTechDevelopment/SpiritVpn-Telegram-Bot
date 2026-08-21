@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from urllib.parse import unquote, urlsplit
+from urllib.parse import parse_qs, unquote, urlsplit
 
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import HTMLResponse, PlainTextResponse
@@ -37,6 +37,15 @@ def _link_label(link: AccessLink) -> str | None:
         return None
     fragment = urlsplit(link.uri).fragment
     return unquote(fragment) or None
+
+
+def _link_debug_sni(link: AccessLink) -> str | None:
+    """DEBUG: SNI из query vless://...?...sni=..."""
+    if not link.uri:
+        return None
+    query = parse_qs(urlsplit(link.uri).query)
+    values = query.get("sni")
+    return values[0] if values else None
 
 
 def create_app(
@@ -92,6 +101,7 @@ def create_app(
                 state=link.state,
                 label=_link_label(link),
                 block_reason=link.block_reason,
+                debug_sni=_link_debug_sni(link),
             )
             for link in links
         ]

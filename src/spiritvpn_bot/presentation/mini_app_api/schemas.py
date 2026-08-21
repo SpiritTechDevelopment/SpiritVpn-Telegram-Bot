@@ -12,6 +12,7 @@ class LinkStatusOut(BaseModel):
     state: AccessState
     label: str | None = None
     block_reason: BlockReason | None = None
+    debug_sni: str | None = None  # DEBUG: убрать вместе с main.py::_link_debug_sni
 
 
 class SubscriptionUrlOut(BaseModel):

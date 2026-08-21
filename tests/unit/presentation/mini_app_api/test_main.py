@@ -91,10 +91,40 @@ def test_my_links_returns_link_statuses_without_uri() -> None:
     assert response.status_code == 200
     body = response.json()
     assert body == [
-        {"kind": "BRIDGE", "state": "READY", "label": "Amsterdam", "block_reason": None},
-        {"kind": "BRIDGE", "state": "BLOCKED", "label": None, "block_reason": "TIME_EXPIRED"},
+        {
+            "kind": "BRIDGE",
+            "state": "READY",
+            "label": "Amsterdam",
+            "block_reason": None,
+            "debug_sni": None,
+        },
+        {
+            "kind": "BRIDGE",
+            "state": "BLOCKED",
+            "label": None,
+            "block_reason": "TIME_EXPIRED",
+            "debug_sni": None,
+        },
     ]
     assert "secret" not in response.text
+
+
+def test_my_links_includes_debug_sni() -> None:
+    gateway = FakeVPNAccessGateway()
+    gateway.links_by_customer["tg:42"] = [
+        AccessLink(
+            kind="BRIDGE",
+            state="READY",
+            uri="vless://x@host:443?sni=ro.vmshare.ru&security=reality#Romania",
+        ),
+    ]
+    client = make_client(gateway)
+    init_data = sign_init_data(valid_fields(user_id=42))
+
+    response = client.get("/api/me/links", headers={"X-Telegram-Init-Data": init_data})
+
+    assert response.status_code == 200
+    assert response.json()[0]["debug_sni"] == "ro.vmshare.ru"
 
 
 def test_my_links_returns_both_kinds() -> None:

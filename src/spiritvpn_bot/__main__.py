@@ -6,12 +6,31 @@ import asyncio
 import sys
 
 import uvicorn
+from aiogram import Bot
 
-from spiritvpn_bot.config import load_settings
+from spiritvpn_bot.config import Settings, load_settings
 from spiritvpn_bot.di import build_container
-from spiritvpn_bot.logging import configure_logging, get_logger
+from spiritvpn_bot.logging import configure_logging, get_logger, set_error_sink
+from spiritvpn_bot.presentation.mini_app_api.main import create_app
 
 logger = get_logger(__name__)
+
+
+def _setup_error_sink(settings: Settings) -> None:
+    """Пересылка error/exception-логов в топик Telegram, если настроено в переменных окружения"""
+    if not settings.error_notifications_chat_id or not settings.error_notifications_bot_token:
+        return
+
+    from spiritvpn_bot.infrastructure.telegram_error_sink import TelegramErrorSink
+
+    set_error_sink(
+        TelegramErrorSink(
+            bot=Bot(token=settings.error_notifications_bot_token),
+            chat_id=settings.error_notifications_chat_id,
+            message_thread_id=settings.error_notifications_message_thread_id,
+        )
+    )
+    logger.info("error_sink_configured", chat_id=settings.error_notifications_chat_id)
 
 
 def _run_bot() -> None:
@@ -22,6 +41,7 @@ def _run_bot() -> None:
     logger.info("process_starting", process="bot")
 
     async def _main() -> None:
+        _setup_error_sink(settings)
         container = build_container(settings)
         await run_bot(container)
 
@@ -29,13 +49,12 @@ def _run_bot() -> None:
 
 
 def _run_api() -> None:
-    from spiritvpn_bot.presentation.mini_app_api.main import create_app
-
     settings = load_settings()
     configure_logging(settings.log_level)
     logger.info("process_starting", process="api", port=settings.mini_app_http_port)
 
     async def _main() -> None:
+        _setup_error_sink(settings)
         container = build_container(settings)
         app = create_app(
             get_my_links=container.get_my_links_use_case(),

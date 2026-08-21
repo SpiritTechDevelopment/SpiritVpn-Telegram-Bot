@@ -47,6 +47,20 @@ class Settings(BaseSettings):
         )
     )
 
+    error_notifications_chat_id: str | None = Field(
+        default=None,
+        validation_alias="TELEGRAM_CHAT_ID",
+        description=("chat_id топика/группы для пересылки логов уровня error/exception "),
+    )
+    error_notifications_message_thread_id: int | None = Field(
+        default=None, description="message_thread_id топика внутри группы, если это форум"
+    )
+    error_notifications_bot_token: str | None = Field(
+        default=None,
+        validation_alias="TELEGRAM_BOT_TOKEN",
+        description=("Токен отдельного бота для уведомлений об ошибках "),
+    )
+
 
 def load_settings() -> Settings:
     return Settings()  # type: ignore[call-arg]

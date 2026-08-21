@@ -38,7 +38,7 @@ class PostgresOrderRepository:
         row.payment_reference = order.payment_reference
 
     async def get_latest_for_customer(self, customer_id: str) -> Order | None:
-        """ Возвращает заказ клиента с наибольшим параметром 
+        """Возвращает заказ клиента с наибольшим параметром
         command_number — та выдача, что реально применена в spiritvpnd последней.
 
         Args:

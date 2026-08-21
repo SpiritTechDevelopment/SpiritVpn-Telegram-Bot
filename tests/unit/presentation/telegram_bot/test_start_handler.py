@@ -6,6 +6,7 @@ from typing import Any
 
 from aiogram.exceptions import TelegramBadRequest
 
+from spiritvpn_bot.application.errors import ExpiryRegression
 from spiritvpn_bot.application.plans import build_plan_catalog
 from spiritvpn_bot.application.subscription_token import SubscriptionTokenSigner
 from spiritvpn_bot.application.use_cases.redeem_friend_code import RedeemFriendCodeUseCase
@@ -190,3 +191,24 @@ async def test_gateway_failure_after_match_still_replies() -> None:
 
     assert len(message.answers) == 1
     assert "оформлен" in message.answers[0].text
+
+
+async def test_expiry_regression_gets_a_specific_explanation() -> None:
+    uow, gateway, redeem, request_access = build_use_cases()
+    gateway.raise_on_apply = ExpiryRegression(
+        "FAILED_PRECONDITION", "сокращение expires_at не поддерживается"
+    )
+    signer = SubscriptionTokenSigner(SIGNING_KEY)
+    message = FakeMessage(from_user=FakeUser(id=42), text=SHARED_CODE)
+
+    await handle_text(
+        message,  # type: ignore[arg-type]
+        lambda: redeem,
+        lambda: request_access,
+        signer,
+        SUBSCRIPTION_BASE_URL,
+        MINI_APP_URL,
+    )
+
+    assert len(message.answers) == 1
+    assert "не укорачивает подписку" in message.answers[0].text

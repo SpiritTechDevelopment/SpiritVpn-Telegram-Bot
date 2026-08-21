@@ -2,17 +2,18 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-import structlog
 from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import CommandStart
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, WebAppInfo
 
+from spiritvpn_bot.application.errors import ExpiryRegression
 from spiritvpn_bot.application.subscription_token import SubscriptionTokenSigner
 from spiritvpn_bot.application.use_cases.redeem_friend_code import RedeemFriendCodeUseCase
 from spiritvpn_bot.application.use_cases.request_vpn_access import RequestAccessUseCase
+from spiritvpn_bot.logging import get_logger
 
-logger = structlog.get_logger(__name__)
+logger = get_logger(__name__)
 
 router = Router(name="start")
 
@@ -87,6 +88,18 @@ async def handle_text(
 
     try:
         await request_access_factory().execute(order_id=order.id)
+    except ExpiryRegression:
+        logger.warning(
+            "request_access_expiry_regression", order_id=order.id, customer_id=customer_id
+        )
+        await answer_with_mini_app(
+            message,
+            "Текущий срок доступа длиннее того, что даёт этот код — бэк сервис SpiritVPN не "
+            "укорачивает подписку. Возьмите код с бо́льшим сроком либо дождитесь "
+            "истечения текущего.",
+            mini_app_url,
+        )
+        return
     except Exception:
         logger.exception("request_access_failed", order_id=order.id, customer_id=customer_id)
         await answer_with_mini_app(

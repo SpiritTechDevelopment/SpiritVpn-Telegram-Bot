@@ -200,6 +200,8 @@
       tg.ready();
       tg.expand();
 
+      const DEBUG_SHOW_LINK_KIND = true;
+
       const STATE_LABEL = {
         READY: "готов",
         PENDING: "активируется",
@@ -256,7 +258,8 @@
           dot.className = `dot ${link.state.toLowerCase()}`;
           const label = document.createElement("span");
           const name = link.label ?? `Сервер ${index + 1}`;
-          label.textContent = `${name} — ${STATE_LABEL[link.state] ?? link.state}`;
+          const kindSuffix = DEBUG_SHOW_LINK_KIND ? ` [${link.kind}]` : "";
+          label.textContent = `${name} — ${STATE_LABEL[link.state] ?? link.state}${kindSuffix}`;
           row.append(dot, label);
           serversEl.appendChild(row);
         });

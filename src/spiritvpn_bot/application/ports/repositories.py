@@ -25,6 +25,19 @@ class OrderRepository(Protocol):
 
     async def save(self, order: Order) -> None: ...
 
+    async def get_latest_for_customer(self, customer_id: str) -> Order | None:
+        """Заказ клиента с наибольшим command_number — та выдача, что
+        реально применена в spiritvpnd последней.
+
+        Args:
+            customer_id: ID клиента.
+
+        Returns:
+            Заказ, либо None, если у клиента ещё не было ни одной выдачи
+            (command_number ни разу не назначался).
+        """
+        ...
+
 
 class CommandSequenceRepository(Protocol):
     """Владеет монотонным счётчиком command_number на customer_id."""

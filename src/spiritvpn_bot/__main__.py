@@ -39,6 +39,7 @@ def _run_api() -> None:
         container = build_container(settings)
         app = create_app(
             get_my_links=container.get_my_links_use_case(),
+            get_subscription_status=container.get_subscription_status_use_case,
             token_signer=container.token_signer,
             bot_token=container.settings.telegram_bot_token,
             subscription_base_url=container.settings.subscription_base_url,

@@ -52,6 +52,16 @@ class InMemoryOrderRepository:
         self.journal.append(f"save:{order.id}")
         self._orders[order.id] = order
 
+    async def get_latest_for_customer(self, customer_id: str) -> Order | None:
+        candidates = [
+            order
+            for order in self._orders.values()
+            if order.customer_id == customer_id and order.command_number is not None
+        ]
+        if not candidates:
+            return None
+        return max(candidates, key=lambda order: order.command_number)
+
 
 class InMemoryCommandSequenceRepository:
     def __init__(self) -> None:

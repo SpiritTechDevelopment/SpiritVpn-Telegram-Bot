@@ -112,6 +112,58 @@ async def test_uow_rolls_back_without_explicit_commit(
     assert loaded is None
 
 
+async def test_get_latest_for_customer_picks_highest_command_number(
+    uow: SqlAlchemyUnitOfWork,
+) -> None:
+    older = make_order("order-1")
+    newer = make_order("order-2")
+    async with uow as tx:
+        await tx.orders.add(older)
+        await tx.orders.add(newer)
+        await tx.commit()
+
+    async with uow as tx:
+        loaded = await tx.orders.get_for_update("order-1")
+        assert loaded is not None
+        loaded.mark_awaiting_payment()
+        loaded.mark_paid(
+            command_number=1, expires_at=NOW + timedelta(days=5), payment_reference="x"
+        )
+        await tx.orders.save(loaded)
+
+        loaded2 = await tx.orders.get_for_update("order-2")
+        assert loaded2 is not None
+        loaded2.mark_awaiting_payment()
+        loaded2.mark_paid(
+            command_number=2, expires_at=NOW + timedelta(days=40), payment_reference="x"
+        )
+        await tx.orders.save(loaded2)
+        await tx.commit()
+
+    async with uow as tx:
+        latest = await tx.orders.get_latest_for_customer("tg:1")
+        await tx.commit()
+
+    assert latest is not None
+    assert latest.id == "order-2"
+    assert latest.command_number == 2
+
+
+async def test_get_latest_for_customer_ignores_unpaid_orders(
+    uow: SqlAlchemyUnitOfWork,
+) -> None:
+    order = make_order()
+    async with uow as tx:
+        await tx.orders.add(order)
+        await tx.commit()
+
+    async with uow as tx:
+        latest = await tx.orders.get_latest_for_customer("tg:1")
+        await tx.commit()
+
+    assert latest is None
+
+
 async def test_get_for_update_serializes_concurrent_writers(
     session_factory: async_sessionmaker[AsyncSession],
 ) -> None:

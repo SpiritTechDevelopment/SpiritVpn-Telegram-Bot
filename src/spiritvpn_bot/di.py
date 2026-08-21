@@ -13,6 +13,9 @@ from spiritvpn_bot.application.ports.vpn_gateway import VPNAccessGateway
 from spiritvpn_bot.application.subscription_token import SubscriptionTokenSigner
 from spiritvpn_bot.application.use_cases.confirm_payment import ConfirmPaymentUseCase
 from spiritvpn_bot.application.use_cases.get_my_links import GetMyLinksUseCase
+from spiritvpn_bot.application.use_cases.get_subscription_status import (
+    GetSubscriptionStatusUseCase,
+)
 from spiritvpn_bot.application.use_cases.purchase_subscription import PurchaseSubscriptionUseCase
 from spiritvpn_bot.application.use_cases.redeem_friend_code import RedeemFriendCodeUseCase
 from spiritvpn_bot.application.use_cases.request_vpn_access import RequestAccessUseCase
@@ -65,6 +68,9 @@ class Container:
 
     def get_my_links_use_case(self) -> GetMyLinksUseCase:
         return GetMyLinksUseCase(self.vpn_gateway)
+
+    def get_subscription_status_use_case(self) -> GetSubscriptionStatusUseCase:
+        return GetSubscriptionStatusUseCase(self._new_uow(), self.clock)
 
 
 def build_container(settings: Settings | None = None) -> Container:

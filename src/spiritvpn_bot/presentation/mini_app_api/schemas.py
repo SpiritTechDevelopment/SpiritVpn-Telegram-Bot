@@ -19,6 +19,12 @@ class SubscriptionUrlOut(BaseModel):
     url: str
 
 
+class SubscriptionStatusOut(BaseModel):
+    """days_left — None, если у клиента ещё не было ни одной выдачи."""
+
+    days_left: int | None
+
+
 class PlanOut(BaseModel):
     """Один план в публичной витрине мини-аппа."""
 

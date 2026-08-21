@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlsplit
 
@@ -13,11 +14,15 @@ from spiritvpn_bot.application.plans import PlanCatalog
 from spiritvpn_bot.application.ports.vpn_gateway import AccessLink
 from spiritvpn_bot.application.subscription_token import SubscriptionTokenSigner
 from spiritvpn_bot.application.use_cases.get_my_links import GetMyLinksUseCase
+from spiritvpn_bot.application.use_cases.get_subscription_status import (
+    GetSubscriptionStatusUseCase,
+)
 from spiritvpn_bot.logging import get_logger
 from spiritvpn_bot.presentation.mini_app_api.auth import InitDataError, validate_init_data
 from spiritvpn_bot.presentation.mini_app_api.schemas import (
     LinkStatusOut,
     PlanOut,
+    SubscriptionStatusOut,
     SubscriptionUrlOut,
 )
 
@@ -51,6 +56,7 @@ def _link_debug_sni(link: AccessLink) -> str | None:
 def create_app(
     *,
     get_my_links: GetMyLinksUseCase,
+    get_subscription_status: Callable[[], GetSubscriptionStatusUseCase],
     token_signer: SubscriptionTokenSigner,
     bot_token: str,
     subscription_base_url: str,
@@ -60,6 +66,8 @@ def create_app(
 
     Args:
         get_my_links: use case чтения текущих ссылок клиента.
+        get_subscription_status: фабрика use case'а остатка срока — своя
+            SqlAlchemyUnitOfWork на вызов, как и другие DB-bound use case'ы.
         token_signer: подпись/проверка токена подписочного эндпоинта.
         bot_token: токен бота — нужен для проверки initData мини-аппа.
         subscription_base_url: публичный базовый URL для /s/{token}.
@@ -105,6 +113,14 @@ def create_app(
             )
             for link in links
         ]
+
+    @app.get("/api/me/subscription-status", response_model=SubscriptionStatusOut)
+    async def my_subscription_status(
+        x_telegram_init_data: str = Header(...),
+    ) -> SubscriptionStatusOut:
+        customer_id = _authenticate(x_telegram_init_data)
+        days_left = await get_subscription_status().execute(customer_id=customer_id)
+        return SubscriptionStatusOut(days_left=days_left)
 
     @app.get("/api/me/subscription-url", response_model=SubscriptionUrlOut)
     async def my_subscription_url(x_telegram_init_data: str = Header(...)) -> SubscriptionUrlOut:

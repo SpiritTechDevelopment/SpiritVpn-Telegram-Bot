@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql import desc
 
 from spiritvpn_bot.domain.entities.money import Money
 from spiritvpn_bot.domain.entities.order import Order, OrderStatus
@@ -35,6 +36,29 @@ class PostgresOrderRepository:
         row.command_number = order.command_number
         row.expires_at = order.expires_at
         row.payment_reference = order.payment_reference
+
+    async def get_latest_for_customer(self, customer_id: str) -> Order | None:
+        """ Возвращает заказ клиента с наибольшим параметром 
+        command_number — та выдача, что реально применена в spiritvpnd последней.
+
+        Args:
+            customer_id (str): ID клиента.
+
+        Returns:
+            Order | None: Заказ, либо None, если у клиента ещё не было ни одной выдачи
+            (или если command_number ни разу не назначался).
+        """
+        result = await self._session.execute(
+            select(OrderRow)
+            .where(OrderRow.customer_id == customer_id, OrderRow.command_number.is_not(None))
+            .order_by(desc(OrderRow.command_number))
+            .limit(1)
+        )
+        row = result.scalar_one_or_none()
+        if row is not None:
+            return _to_domain(row)
+        else:
+            return None
 
 
 def _to_row(order: Order) -> OrderRow:

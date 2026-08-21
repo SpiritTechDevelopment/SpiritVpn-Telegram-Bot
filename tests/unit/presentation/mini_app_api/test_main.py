@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import time
+from datetime import UTC, datetime
 
 from fastapi.testclient import TestClient
 
@@ -9,19 +10,31 @@ from spiritvpn_bot.application.plans import build_plan_catalog
 from spiritvpn_bot.application.ports.vpn_gateway import AccessLink
 from spiritvpn_bot.application.subscription_token import SubscriptionTokenSigner
 from spiritvpn_bot.application.use_cases.get_my_links import GetMyLinksUseCase
+from spiritvpn_bot.application.use_cases.get_subscription_status import (
+    GetSubscriptionStatusUseCase,
+)
 from spiritvpn_bot.presentation.mini_app_api.main import create_app
-from tests.unit.application.fakes import FakeVPNAccessGateway
+from tests.unit.application.fakes import (
+    FakeClock,
+    FakeUnitOfWork,
+    FakeVPNAccessGateway,
+    InMemoryCommandSequenceRepository,
+    InMemoryOrderRepository,
+)
 from tests.unit.presentation.mini_app_api.test_auth import BOT_TOKEN, sign_init_data, valid_fields
 
 SUBSCRIPTION_BASE_URL = "https://sub.example.test"
 SIGNING_KEY = b"test-signing-key"
+NOW = datetime(2026, 1, 1, tzinfo=UTC)
 
 PLANS = build_plan_catalog(friends_fleet_id=1, friends_quota_bytes=10, friends_duration_days=30)
 
 
 def make_client(gateway: FakeVPNAccessGateway) -> TestClient:
+    uow = FakeUnitOfWork(InMemoryOrderRepository(), InMemoryCommandSequenceRepository())
     app = create_app(
         get_my_links=GetMyLinksUseCase(gateway),
+        get_subscription_status=lambda: GetSubscriptionStatusUseCase(uow, FakeClock(NOW)),
         token_signer=SubscriptionTokenSigner(SIGNING_KEY),
         bot_token=BOT_TOKEN,
         subscription_base_url=SUBSCRIPTION_BASE_URL,
@@ -157,6 +170,26 @@ def test_my_subscription_url_matches_signed_token() -> None:
     assert signer.verify(token) == "tg:42"
 
 
+def test_my_subscription_status_requires_init_data_header() -> None:
+    client = make_client(FakeVPNAccessGateway())
+
+    response = client.get("/api/me/subscription-status")
+
+    assert response.status_code == 422
+
+
+def test_my_subscription_status_returns_none_for_customer_without_orders() -> None:
+    client = make_client(FakeVPNAccessGateway())
+    init_data = sign_init_data(valid_fields(user_id=42))
+
+    response = client.get(
+        "/api/me/subscription-status", headers={"X-Telegram-Init-Data": init_data}
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"days_left": None}
+
+
 def test_static_index_page_is_served() -> None:
     client = make_client(FakeVPNAccessGateway())
 
@@ -213,8 +246,10 @@ def test_plans_endpoint_lists_purchasable_plans() -> None:
             )
         }
     )
+    uow = FakeUnitOfWork(InMemoryOrderRepository(), InMemoryCommandSequenceRepository())
     app = create_app(
         get_my_links=GetMyLinksUseCase(FakeVPNAccessGateway()),
+        get_subscription_status=lambda: GetSubscriptionStatusUseCase(uow, FakeClock(NOW)),
         token_signer=SubscriptionTokenSigner(SIGNING_KEY),
         bot_token=BOT_TOKEN,
         subscription_base_url=SUBSCRIPTION_BASE_URL,

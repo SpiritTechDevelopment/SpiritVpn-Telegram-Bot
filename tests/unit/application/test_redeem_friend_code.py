@@ -96,6 +96,27 @@ async def test_repeated_use_by_the_same_customer_renews() -> None:
     assert second.command_number == 2
 
 
+async def test_test_duration_code_grants_a_short_lived_order() -> None:
+    uow = make_uow()
+    use_case = build_use_case(uow)
+
+    order = await use_case.execute(customer_id="tg:1", submitted_code="test10m")
+
+    assert order is not None
+    assert order.plan.id == "friends-free"
+    assert order.expires_at == NOW + timedelta(minutes=10)
+
+
+async def test_different_test_duration_codes_grant_different_durations() -> None:
+    uow = make_uow()
+    use_case = build_use_case(uow)
+
+    order = await use_case.execute(customer_id="tg:1", submitted_code="test1h")
+
+    assert order is not None
+    assert order.expires_at == NOW + timedelta(hours=1)
+
+
 async def test_publishes_order_paid_only_on_match() -> None:
     uow = make_uow()
     events = FakeEventPublisher()

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hmac
+from datetime import timedelta
 
 from spiritvpn_bot.application.builders.order_builder import OrderBuilder
 from spiritvpn_bot.application.plans import FRIENDS_FREE_PLAN_ID, PlanCatalog
@@ -14,6 +15,13 @@ from spiritvpn_bot.domain.events import OrderPaid
 from spiritvpn_bot.logging import get_logger
 
 logger = get_logger(__name__)
+
+_TEST_DURATION_CODES: dict[str, timedelta] = {
+    "test10m": timedelta(minutes=10),
+    "test1h": timedelta(hours=1),
+    "test1w": timedelta(weeks=1),
+    "test1mo": timedelta(days=30),
+}
 
 
 class RedeemFriendCodeUseCase:
@@ -36,7 +44,8 @@ class RedeemFriendCodeUseCase:
         self._shared_code = shared_code
 
     async def execute(self, *, customer_id: str, submitted_code: str) -> Order | None:
-        """Проверяет присланный текст на совпадение с общим паролем.
+        """Проверяет присланный текст на совпадение с общим паролем (или,
+        временно, с одним из тестовых кодов срока действия).
 
         Args:
             customer_id: непрозрачный идентификатор клиента.
@@ -46,12 +55,23 @@ class RedeemFriendCodeUseCase:
             Оплаченный заказ на friends-free план при совпадении, иначе
             None — это ожидаемый исход для произвольного текста, не ошибка.
         """
-        submitted = submitted_code.strip().encode("utf-8")
-        expected = self._shared_code.encode("utf-8")
-        if not hmac.compare_digest(submitted, expected):
+        duration = self._match_code(submitted_code)
+        if duration is None:
             logger.debug("friend_code_no_match", customer_id=customer_id)
             return None
+        return await self._grant(customer_id=customer_id, duration=duration)
 
+    def _match_code(self, submitted_code: str) -> timedelta | None:
+        submitted = submitted_code.strip().encode("utf-8")
+        if hmac.compare_digest(submitted, self._shared_code.encode("utf-8")):
+            plan = self._plans.get(FRIENDS_FREE_PLAN_ID)
+            return timedelta(days=plan.duration_days)
+        for code, duration in _TEST_DURATION_CODES.items():
+            if hmac.compare_digest(submitted, code.encode("utf-8")):
+                return duration
+        return None
+
+    async def _grant(self, *, customer_id: str, duration: timedelta) -> Order:
         plan = self._plans.get(FRIENDS_FREE_PLAN_ID)
 
         order = (
@@ -68,6 +88,7 @@ class RedeemFriendCodeUseCase:
                 clock=self._clock,
                 order=order,
                 payment_reference="friend-code",
+                duration=duration,
             )
             await uow.orders.add(order)
             await uow.commit()

@@ -9,7 +9,12 @@ from spiritvpn_bot.domain.services.command_sequence import next_command_number
 
 
 async def assign_command_number_and_mark_paid(
-    *, uow: UnitOfWork, clock: Clock, order: Order, payment_reference: str
+    *,
+    uow: UnitOfWork,
+    clock: Clock,
+    order: Order,
+    payment_reference: str,
+    duration: timedelta | None = None,
 ) -> int:
     """Назначает command_number и переводит заказ в PAID.
 
@@ -18,13 +23,16 @@ async def assign_command_number_and_mark_paid(
         clock: источник текущего времени.
         order: заказ в статусе AWAITING_PAYMENT.
         payment_reference: ссылка на платёж провайдера либо на бесплатную выдачу.
+        duration: срок действия, если он отличается от order.plan.duration_days
+            (сейчас — только тестовые коды с коротким сроком, см.
+            redeem_friend_code.py).
 
     Returns:
         Назначенный command_number.
     """
     last_issued = await uow.command_sequence.last_issued_for_update(order.customer_id)
     command_number = next_command_number(last_issued)
-    expires_at = clock.now() + timedelta(days=order.plan.duration_days)
+    expires_at = clock.now() + (duration or timedelta(days=order.plan.duration_days))
     order.mark_paid(
         command_number=command_number,
         expires_at=expires_at,

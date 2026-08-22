@@ -6,9 +6,7 @@ from spiritvpn_bot.application.ports.vpn_gateway import AccessState, BlockReason
 
 
 class LinkStatusOut(BaseModel):
-    """Статус одного доступа для мини-аппа.
-
-    """
+    """Статус одного доступа для мини-аппа."""
 
     state: AccessState
     label: str | None = None

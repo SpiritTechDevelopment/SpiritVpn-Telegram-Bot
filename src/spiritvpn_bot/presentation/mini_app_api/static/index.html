@@ -100,6 +100,31 @@
         font-weight: 600;
         margin: 0 0 0.6rem;
       }
+      .status-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 0.75rem;
+        padding: 1.25rem 0.75rem 0.5rem;
+      }
+      .status-empty svg {
+        stroke: var(--hint);
+      }
+      .status-empty-text {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+      #status-empty-title {
+        font-size: 1rem;
+        font-weight: 600;
+      }
+      #status-empty-subtitle {
+        font-size: 0.82rem;
+        color: var(--hint);
+        max-width: 260px;
+      }
       #health-row {
         display: flex;
         align-items: center;
@@ -320,10 +345,27 @@
         </svg>
         Скопировать ссылку подписки
       </button>
+      <div id="status-empty" class="status-empty" style="display: none">
+        <svg
+          width="40"
+          height="40"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke-width="1.6"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path>
+        </svg>
+        <div class="status-empty-text">
+          <span id="status-empty-title"></span>
+          <span id="status-empty-subtitle"></span>
+        </div>
+      </div>
     </section>
 
     <section class="card">
-      <p class="kicker"><span>Тарифы</span></p>
+      <p class="kicker"><span id="tariffs-kicker-label">Тарифы</span></p>
       <p class="empty-state" id="plans-empty" style="display: none">
         Платные тарифы скоро появятся.
       </p>
@@ -336,9 +378,6 @@
       const tg = window.Telegram.WebApp;
       tg.ready();
       tg.expand();
-      // Дизайн зафиксирован на тёмной палитре — красим нативный chrome
-      // Telegram (шапку, фон под контентом) в тот же цвет, а не оставляем
-      // его на теме клиента.
       tg.setHeaderColor?.("#0d0d0d");
       tg.setBackgroundColor?.("#0d0d0d");
 
@@ -350,6 +389,11 @@
         BLOCKED: "#b8503f",
         FAILED: "#b8503f",
       };
+
+      const BUY_ICON_SVG =
+        '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>';
+      const RENEW_ICON_SVG =
+        '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M3 21v-5h5"></path></svg>';
 
       const COUNTRIES = {
         NL: {
@@ -374,6 +418,11 @@
         },
       };
 
+      // Фоллбэк на переходный период для нод, ещё не переименованных под
+      // "[код страны] [имя] [номер]" — сопоставление по старому свободному
+      // имени (может быть городом, как "amsterdam", либо уже страной, как
+      // "russia"). Удалить, когда все ноды в манифесте переедут на новый
+      // формат.
       const COUNTRY_CODE_BY_LEGACY_NAME = {
         amsterdam: "NL",
         frankfurt: "DE",
@@ -392,6 +441,12 @@
         return { code: null, rest: side };
       }
 
+      // Разбирает одну сторону label ("NL Amsterdam 1" либо легаси
+      // "Amsterdam") в { flag, name, detail }. name — название страны, если
+      // код страны опознан (иначе исходный текст стороны как есть); detail —
+      // город/номер ноды, только когда страна опознана и есть что показать
+      // отдельной строкой — иначе null (не дублировать name). Без detail две
+      // ноды в одной стране неотличимы друг от друга в списке.
       function countryInfoForSide(rawSide) {
         const { code, rest } = splitCountryCode(rawSide);
         const resolvedCode = code ?? COUNTRY_CODE_BY_LEGACY_NAME[rawSide.toLowerCase()];
@@ -403,6 +458,12 @@
         };
       }
 
+      // Возвращает { flagDef, displayLabel, detailLabel }. displayLabel —
+      // название страны по каждой стороне BRIDGE отдельно (раз рядом уже
+      // стоит флаг, дублировать смысл названием города незачем). detailLabel
+      // — город/номер ноды второй строкой под названием страны; null, если
+      // отличать нечем. Сторона, для которой страна не опознана, показывается
+      // как есть, без выдумывания.
       function resolveLink(label) {
         if (!label) {
           return { flagDef: null, displayLabel: null, detailLabel: null };
@@ -436,6 +497,12 @@
 
       let allLinks = [];
       let serversExpanded = false;
+      // "buy" — клиент никогда не получал доступ (первая покупка);
+      // "renew" — доступ был хоть раз, даже если сейчас не активен
+      // (истёк/заблокирован) — тарифы предлагаем как продление, не как
+      // покупку с нуля. Выставляется в loadSubscriptionStatus(), читается в
+      // loadPlans() — main() вызывает их строго в этом порядке.
+      let tariffsMode = "buy";
 
       function showToast(text) {
         const toast = document.getElementById("toast");
@@ -554,14 +621,43 @@
       async function loadSubscriptionStatus() {
         const statusEl = document.getElementById("status-line");
         const healthRowEl = document.getElementById("health-row");
+        const serversEl = document.getElementById("servers");
+        const toggleBtn = document.getElementById("toggle-servers");
         const copyBtn = document.getElementById("copy-btn");
+        const emptyEl = document.getElementById("status-empty");
+        const emptyTitleEl = document.getElementById("status-empty-title");
+        const emptySubtitleEl = document.getElementById("status-empty-subtitle");
+        const tariffsKickerEl = document.getElementById("tariffs-kicker-label");
 
         allLinks = await callApi("/api/me/links");
 
-        if (allLinks.length === 0) {
-          statusEl.textContent = "Активной подписки нет — выберите тариф ниже.";
+        const hasEverHadAccess = allLinks.length > 0;
+        const hasActiveOrPending = allLinks.some(
+          (l) => l.state === "READY" || l.state === "PENDING",
+        );
+
+        tariffsMode = hasEverHadAccess ? "renew" : "buy";
+        tariffsKickerEl.textContent = tariffsMode === "renew" ? "Тарифы — продление" : "Тарифы";
+
+        if (!hasActiveOrPending) {
+          statusEl.style.display = "none";
+          healthRowEl.style.display = "none";
+          serversEl.style.display = "none";
+          toggleBtn.style.display = "none";
+          copyBtn.style.display = "none";
+          emptyEl.style.display = "flex";
+          emptyTitleEl.textContent = hasEverHadAccess
+            ? "Подписка закончилась"
+            : "Активной подписки нет";
+          emptySubtitleEl.textContent = hasEverHadAccess
+            ? "Продлите тариф ниже, чтобы восстановить доступ"
+            : "Оформите тариф ниже, чтобы получить доступ к серверам";
           return;
         }
+
+        emptyEl.style.display = "none";
+        statusEl.style.display = "block";
+        serversEl.style.display = "flex";
 
         const ready = allLinks.filter((l) => l.state === "READY").length;
         statusEl.textContent = `${ready} из ${allLinks.length} серверов активны`;
@@ -588,10 +684,18 @@
 
         const plans = await fetch("/api/plans").then((r) => r.json());
 
+        plansEl.innerHTML = "";
+        emptyEl.style.display = "none";
+
         if (plans.length === 0) {
           emptyEl.style.display = "block";
           return;
         }
+
+        const buyLabel = tariffsMode === "renew" ? "Продлить" : "Купить";
+        const buyIcon = tariffsMode === "renew" ? RENEW_ICON_SVG : BUY_ICON_SVG;
+        const toastText =
+          tariffsMode === "renew" ? "Продление скоро будет доступно" : "Оплата скоро будет доступна";
 
         for (const plan of plans) {
           const row = document.createElement("div");
@@ -610,10 +714,9 @@
 
           const buyBtn = document.createElement("button");
           buyBtn.className = "btn-buy";
-          buyBtn.setAttribute("aria-label", "Купить");
-          buyBtn.innerHTML =
-            '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>';
-          buyBtn.onclick = () => showToast("Оплата скоро будет доступна");
+          buyBtn.setAttribute("aria-label", buyLabel);
+          buyBtn.innerHTML = buyIcon;
+          buyBtn.onclick = () => showToast(toastText);
 
           row.append(info, buyBtn);
           plansEl.appendChild(row);
@@ -624,7 +727,10 @@
         try {
           await loadSubscriptionStatus();
         } catch (err) {
-          document.getElementById("status-line").textContent = "Не удалось загрузить статус подписки.";
+          const statusEl = document.getElementById("status-line");
+          statusEl.style.display = "block";
+          statusEl.textContent = "Не удалось загрузить статус подписки.";
+          document.getElementById("status-empty").style.display = "none";
           console.error(err);
         }
 
@@ -642,6 +748,12 @@
       }
 
       main();
+
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+          main();
+        }
+      });
     </script>
   </body>
 </html>

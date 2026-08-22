@@ -1,0 +1,41 @@
+site_name: SpiritVPN Bot Documentation
+site_description: Документация Telegram-бота и mini app SpiritVPN
+site_author: SpiritVPN Team
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - search.suggest
+    - search.highlight
+
+markdown_extensions:
+  - attr_list
+
+nav:
+  - Главная: index.md
+  - Архитектура:
+      - Общая архитектура: ARCHITECTURE.md
+  - Разработка и API:
+      - Документация API: API.md
+      - Конфигурация: CONFIGURATION.md
+      - Руководство по тестированию: TESTING.md
+  - Инфраструктура:
+      - Развёртывание (Деплой): DEPLOYMENT.md
+  - Развитие:
+      - План разработки (Roadmap): ROADMAP.md
+      - Частые вопросы (FAQ): FAQ.md

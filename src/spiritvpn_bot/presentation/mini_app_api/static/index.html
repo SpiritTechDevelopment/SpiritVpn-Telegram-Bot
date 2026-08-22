@@ -11,39 +11,21 @@
     />
     <style>
       :root {
-        color-scheme: light dark;
-        --bg: #fafafa;
-        --card-bg: #ffffff;
-        --text: #111111;
-        --hint: #7a7a7a;
-        --accent: #c9702e;
-        --border: rgba(0, 0, 0, 0.08);
-        --code-bg: rgba(0, 0, 0, 0.03);
-        --card-shadow: 0 24px 48px -22px rgba(0, 0, 0, 0.1);
+        color-scheme: dark;
+        --bg: #0d0d0d;
+        --card-bg: #161616;
+        --text: #ffffff;
+        --hint: #9c9c9c;
+        --accent: #e8935a;
+        --border: rgba(255, 255, 255, 0.09);
+        --code-bg: rgba(255, 255, 255, 0.05);
+        --card-shadow: 0 24px 56px -20px rgba(0, 0, 0, 0.55);
         --button-shadow:
-          0 8px 16px -8px color-mix(in srgb, var(--accent) 40%, transparent),
-          0 18px 36px -18px rgba(0, 0, 0, 0.16);
+          0 8px 18px -8px color-mix(in srgb, var(--accent) 35%, transparent),
+          0 18px 40px -16px rgba(0, 0, 0, 0.55);
         --buy-shadow:
-          0 6px 14px -6px color-mix(in srgb, var(--accent) 40%, transparent),
-          0 12px 26px -12px rgba(0, 0, 0, 0.16);
-      }
-      @media (prefers-color-scheme: dark) {
-        :root {
-          --bg: #0d0d0d;
-          --card-bg: #161616;
-          --text: #ffffff;
-          --hint: #9c9c9c;
-          --accent: #e8935a;
-          --border: rgba(255, 255, 255, 0.09);
-          --code-bg: rgba(255, 255, 255, 0.05);
-          --card-shadow: 0 24px 56px -20px rgba(0, 0, 0, 0.55);
-          --button-shadow:
-            0 8px 18px -8px color-mix(in srgb, var(--accent) 55%, transparent),
-            0 18px 40px -16px rgba(0, 0, 0, 0.55);
-          --buy-shadow:
-            0 6px 14px -6px color-mix(in srgb, var(--accent) 55%, transparent),
-            0 12px 26px -12px rgba(0, 0, 0, 0.55);
-        }
+          0 6px 14px -6px color-mix(in srgb, var(--accent) 35%, transparent),
+          0 12px 26px -12px rgba(0, 0, 0, 0.55);
       }
       * {
         box-sizing: border-box;
@@ -339,6 +321,11 @@
       const tg = window.Telegram.WebApp;
       tg.ready();
       tg.expand();
+      // Дизайн зафиксирован на тёмной палитре — красим нативный chrome
+      // Telegram (шапку, фон под контентом) в тот же цвет, а не оставляем
+      // его на теме клиента.
+      tg.setHeaderColor?.("#0d0d0d");
+      tg.setBackgroundColor?.("#0d0d0d");
 
       // DEBUG: показывает kind (FREEDOM/BRIDGE) и SNI рядом с каждым
       // сервером — для разбора, какой регион на каком kind/ноде. Убрать

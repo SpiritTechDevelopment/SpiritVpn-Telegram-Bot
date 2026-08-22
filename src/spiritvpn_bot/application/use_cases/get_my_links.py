@@ -17,9 +17,10 @@ class GetMyLinksUseCase:
             customer_id: ID клиента.
 
         Returns:
-            Все текущие ссылки клиента, любого kind.
+            Текущие ссылки клиента вида BRIDGE.
         """
         try:
-            return await self._gateway.get_links(customer_id=customer_id)
+            links = await self._gateway.get_links(customer_id=customer_id)
         except CustomerNotFound:
             return []
+        return [link for link in links if link.kind == "BRIDGE"]

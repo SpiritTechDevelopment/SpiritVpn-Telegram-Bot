@@ -18,7 +18,7 @@ FastAPI-процесс (`python -m spiritvpn_bot api`), собирается в
 |---|---|
 | `GET /health` | health-check процесса |
 | `GET /s/{token}` | подписочная ссылка: отдаёт содержимое подписки текстом по подписанному токену (`SubscriptionTokenSigner`) |
-| `GET /api/me/links` | текущие ссылки клиента (все, без фильтра по `kind` — BRIDGE и FREEDOM оба) |
+| `GET /api/me/links` | текущие ссылки клиента вида BRIDGE (`GetMyLinksUseCase` отфильтровывает FREEDOM) |
 | `GET /api/me/subscription-status` | `{"days_left": int \| null}` — остаток срока подписки; `null`, если у клиента нет заказов |
 | `GET /api/me/subscription-url` | публичный URL `/s/{token}` этого клиента |
 | `GET /api/plans` | каталог тарифов для витрины (`PlanCatalog.purchasable()`) |
@@ -26,10 +26,10 @@ FastAPI-процесс (`python -m spiritvpn_bot api`), собирается в
 
 ### `GET /api/me/links`
 
-Отвечает `list[LinkStatusOut]` — по одной записи на ссылку клиента.
-Debug-режим (`DEBUG_SHOW_LINK_DETAILS` в `static/index.html`) дополнительно
-показывает `kind` (BRIDGE/FREEDOM) и SNI ноды рядом с состоянием ссылки —
-не UUID, только то, что разбирается из `sni=` в самом VLESS-URI.
+Отвечает `list[LinkStatusOut]` — по одной записи на ссылку клиента, только
+вида BRIDGE: `GetMyLinksUseCase` отбрасывает FREEDOM, клиенту продукта он не
+показывается и не выдаётся. Поля `kind` в ответе нет — раз он теперь всегда
+один и тот же, толку в нём клиенту нет.
 
 ### `GET /api/me/subscription-status`
 

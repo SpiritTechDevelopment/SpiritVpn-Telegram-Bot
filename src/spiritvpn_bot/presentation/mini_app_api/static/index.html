@@ -7,7 +7,7 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap"
     />
     <style>
       :root {
@@ -40,16 +40,14 @@
         flex-direction: column;
         gap: 1.6rem;
       }
-      .wordmark {
-        font-family: "Instrument Serif", serif;
-        font-style: italic;
-        font-size: 1.7rem;
-        line-height: 1.1;
-      }
-      .subtitle {
-        font-size: 0.82rem;
-        color: var(--hint);
-        margin: 0.1rem 0 0;
+      .page-heading {
+        font-family: "Manrope", sans-serif;
+        font-weight: 800;
+        font-size: 1.9rem;
+        line-height: 1.05;
+        letter-spacing: -0.02em;
+        margin: 0;
+        text-wrap: balance;
       }
       .kicker {
         display: flex;
@@ -102,15 +100,27 @@
         font-weight: 600;
         margin: 0 0 0.6rem;
       }
+      #health-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 1rem;
+      }
       #health-bar {
         display: flex;
-        gap: 4px;
-        margin-bottom: 1rem;
+        gap: 3px;
+        flex-grow: 1;
       }
       #health-bar span {
         flex-grow: 1;
-        height: 5px;
-        border-radius: 3px;
+        height: 10px;
+        border-radius: 5px;
+      }
+      #health-fraction {
+        flex-shrink: 0;
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-size: 0.8rem;
+        font-weight: 600;
       }
       #servers {
         display: flex;
@@ -121,7 +131,15 @@
         display: flex;
         align-items: center;
         gap: 0.6rem;
-        flex-wrap: wrap;
+      }
+      .server-info {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+      }
+      .server-detail {
+        font-size: 0.78rem;
+        color: var(--hint);
       }
       .dot {
         width: 7px;
@@ -139,20 +157,17 @@
       .dot.failed {
         background: #b8503f;
       }
-      .debug-tag {
-        margin-left: auto;
-        font-family: "JetBrains Mono", ui-monospace, monospace;
-        font-size: 0.66rem;
-        background: var(--code-bg);
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        padding: 3px 7px;
+      .flag {
+        display: flex;
+        width: 20px;
+        height: 14px;
+        border-radius: 2px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        flex-shrink: 0;
       }
-      .debug-tag .kind {
-        color: var(--accent);
-      }
-      .debug-tag .sni {
-        color: var(--hint);
+      .flag span {
+        display: block;
       }
       #toggle-servers {
         align-self: flex-start;
@@ -177,17 +192,16 @@
       #plans {
         display: flex;
         flex-direction: column;
-        gap: 0.75rem;
+        gap: 0;
       }
       .plan {
         display: flex;
         align-items: center;
         gap: 0.75rem;
-        background: var(--card-bg);
-        border: 1px solid var(--border);
-        border-radius: 18px;
-        padding: 0.9rem 1rem;
-        box-shadow: var(--card-shadow);
+        padding: 0.75rem 0;
+      }
+      .plan + .plan {
+        border-top: 1px solid var(--border);
       }
       .plan-info {
         flex-grow: 1;
@@ -204,6 +218,7 @@
       button {
         cursor: pointer;
         font-family: inherit;
+        padding: 0;
       }
       .btn-primary {
         width: 100%;
@@ -272,10 +287,7 @@
     </style>
   </head>
   <body>
-    <div>
-      <div class="wordmark">SpiritVPN</div>
-      <p class="subtitle">Управление подпиской</p>
-    </div>
+    <h1 class="page-heading">Управление подпиской</h1>
 
     <section class="card">
       <div class="card-header">
@@ -283,7 +295,10 @@
         <span id="days-left-chip" style="display: none"></span>
       </div>
       <p id="status-line">Загрузка…</p>
-      <div id="health-bar"></div>
+      <div id="health-row" style="display: none">
+        <div id="health-bar"></div>
+        <span id="health-fraction"></span>
+      </div>
       <div id="servers"></div>
       <button id="toggle-servers" style="display: none"></button>
       <button id="copy-btn" class="btn-primary" style="display: none">
@@ -307,7 +322,7 @@
       </button>
     </section>
 
-    <section>
+    <section class="card">
       <p class="kicker"><span>Тарифы</span></p>
       <p class="empty-state" id="plans-empty" style="display: none">
         Платные тарифы скоро появятся.
@@ -327,18 +342,97 @@
       tg.setHeaderColor?.("#0d0d0d");
       tg.setBackgroundColor?.("#0d0d0d");
 
-      // DEBUG: показывает kind (FREEDOM/BRIDGE) и SNI рядом с каждым
-      // сервером — для разбора, какой регион на каком kind/ноде. Убрать
-      // вместе с debug_sni в LinkStatusOut/main.py, когда разбор закончится.
-      const DEBUG_SHOW_LINK_DETAILS = true;
       const COLLAPSED_SERVER_LIMIT = 4;
 
-      const STATE_LABEL = {
-        READY: "готов",
-        PENDING: "активируется",
-        BLOCKED: "заблокирован",
-        FAILED: "ошибка",
+      const STATE_COLOR = {
+        READY: "#2f9c5f",
+        PENDING: "#c9973f",
+        BLOCKED: "#b8503f",
+        FAILED: "#b8503f",
       };
+
+      const COUNTRIES = {
+        NL: {
+          name: "Netherlands",
+          flag: { dir: "column", stripes: [["#AE1C28", 1], ["#FFFFFF", 1], ["#21468B", 1]] },
+        },
+        DE: {
+          name: "Germany",
+          flag: { dir: "column", stripes: [["#000000", 1], ["#DD0000", 1], ["#FFCE00", 1]] },
+        },
+        LV: {
+          name: "Latvia",
+          flag: { dir: "column", stripes: [["#9E1B32", 2], ["#FFFFFF", 1], ["#9E1B32", 2]] },
+        },
+        RO: {
+          name: "Romania",
+          flag: { dir: "row", stripes: [["#002B7F", 1], ["#FCD116", 1], ["#CE1126", 1]] },
+        },
+        RU: {
+          name: "Russia",
+          flag: { dir: "column", stripes: [["#FFFFFF", 1], ["#0039A6", 1], ["#D52B1E", 1]] },
+        },
+      };
+
+      const COUNTRY_CODE_BY_LEGACY_NAME = {
+        amsterdam: "NL",
+        frankfurt: "DE",
+        riga: "LV",
+        romania: "RO",
+        russia: "RU",
+      };
+
+      const COUNTRY_CODE_RE = /^[A-Z]{2}$/;
+
+      function splitCountryCode(side) {
+        const [first, ...rest] = side.split(" ");
+        if (COUNTRY_CODE_RE.test(first) && COUNTRIES[first]) {
+          return { code: first, rest: rest.join(" ") || side };
+        }
+        return { code: null, rest: side };
+      }
+
+      function countryInfoForSide(rawSide) {
+        const { code, rest } = splitCountryCode(rawSide);
+        const resolvedCode = code ?? COUNTRY_CODE_BY_LEGACY_NAME[rawSide.toLowerCase()];
+        const country = resolvedCode ? COUNTRIES[resolvedCode] : undefined;
+        return {
+          flag: country?.flag ?? null,
+          name: country?.name ?? rest,
+          detail: country && rest !== country.name ? rest : null,
+        };
+      }
+
+      function resolveLink(label) {
+        if (!label) {
+          return { flagDef: null, displayLabel: null, detailLabel: null };
+        }
+        const infos = label.split("→").map((side) => countryInfoForSide(side.trim()));
+        const detailLabel = infos.some((info) => info.detail)
+          ? infos.map((info) => info.detail ?? info.name).join(" → ")
+          : null;
+        return {
+          flagDef: infos[0].flag,
+          displayLabel: infos.map((info) => info.name).join(" → "),
+          detailLabel,
+        };
+      }
+
+      function buildFlagIcon(flagDef) {
+        if (!flagDef) {
+          return null;
+        }
+        const flag = document.createElement("span");
+        flag.className = "flag";
+        flag.style.flexDirection = flagDef.dir;
+        for (const [color, weight] of flagDef.stripes) {
+          const stripe = document.createElement("span");
+          stripe.style.background = color;
+          stripe.style.flexGrow = String(weight);
+          flag.appendChild(stripe);
+        }
+        return flag;
+      }
 
       let allLinks = [];
       let serversExpanded = false;
@@ -378,40 +472,44 @@
         dot.className = `dot ${link.state.toLowerCase()}`;
         row.appendChild(dot);
 
-        const name = document.createElement("span");
-        const linkName = link.label ?? `Сервер ${index + 1}`;
-        name.textContent = `${linkName} — ${STATE_LABEL[link.state] ?? link.state}`;
-        row.appendChild(name);
-
-        if (DEBUG_SHOW_LINK_DETAILS) {
-          const tag = document.createElement("span");
-          tag.className = "debug-tag";
-          const kind = document.createElement("span");
-          kind.className = "kind";
-          kind.textContent = link.kind;
-          tag.appendChild(kind);
-          if (link.debug_sni) {
-            const sni = document.createElement("span");
-            sni.className = "sni";
-            sni.textContent = `, sni=${link.debug_sni}`;
-            tag.appendChild(sni);
-          }
-          row.appendChild(tag);
+        const { flagDef, displayLabel, detailLabel } = resolveLink(link.label);
+        const flagIcon = buildFlagIcon(flagDef);
+        if (flagIcon) {
+          row.appendChild(flagIcon);
         }
+
+        const info = document.createElement("div");
+        info.className = "server-info";
+
+        const name = document.createElement("span");
+        name.textContent = displayLabel ?? `Сервер ${index + 1}`;
+        info.appendChild(name);
+
+        if (detailLabel) {
+          const detail = document.createElement("span");
+          detail.className = "server-detail";
+          detail.textContent = detailLabel;
+          info.appendChild(detail);
+        }
+
+        row.appendChild(info);
 
         return row;
       }
 
       function renderHealthBar() {
         const barEl = document.getElementById("health-bar");
+        const fractionEl = document.getElementById("health-fraction");
         barEl.innerHTML = "";
         for (const link of allLinks) {
+          const color = STATE_COLOR[link.state] ?? STATE_COLOR.FAILED;
           const segment = document.createElement("span");
-          const color = link.state === "READY" ? "#2f9c5f" : "#b8503f";
           segment.style.background = color;
-          segment.style.boxShadow = `0 0 8px ${color}77`;
+          segment.style.boxShadow = `0 0 10px ${color}66`;
           barEl.appendChild(segment);
         }
+        const readyCount = allLinks.filter((l) => l.state === "READY").length;
+        fractionEl.textContent = `${readyCount}/${allLinks.length}`;
       }
 
       function renderServers() {
@@ -455,6 +553,7 @@
 
       async function loadSubscriptionStatus() {
         const statusEl = document.getElementById("status-line");
+        const healthRowEl = document.getElementById("health-row");
         const copyBtn = document.getElementById("copy-btn");
 
         allLinks = await callApi("/api/me/links");
@@ -466,6 +565,7 @@
 
         const ready = allLinks.filter((l) => l.state === "READY").length;
         statusEl.textContent = `${ready} из ${allLinks.length} серверов активны`;
+        healthRowEl.style.display = "flex";
         renderHealthBar();
         renderServers();
 

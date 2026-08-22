@@ -41,8 +41,9 @@ presentation    — aiogram-бот и FastAPI mini app, оба поверх appl
     [FAQ](FAQ.md).
   - `request_vpn_access.py` — заявка на доступ к VPN (`RequestAccessUseCase`),
     вызывает `spiritvpnd` через `VPNAccessGateway`.
-  - `get_my_links.py` — текущие ссылки клиента для мини-аппа, без фильтрации
-    по `kind` (BRIDGE и FREEDOM оба возвращаются).
+  - `get_my_links.py` — текущие ссылки клиента для мини-аппа, только вида
+    BRIDGE (`GetMyLinksUseCase` отфильтровывает FREEDOM — внутренний kind
+    spiritvpnd, не часть продуктового контракта).
   - `get_subscription_status.py` — остаток срока подписки в днях
     (`GetSubscriptionStatusUseCase`), на основе заказа с максимальным
     `command_number`.

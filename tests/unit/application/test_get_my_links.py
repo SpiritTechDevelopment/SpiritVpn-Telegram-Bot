@@ -6,7 +6,7 @@ from spiritvpn_bot.application.use_cases.get_my_links import GetMyLinksUseCase
 from tests.unit.application.fakes import FakeVPNAccessGateway
 
 
-async def test_returns_links_from_gateway_regardless_of_kind() -> None:
+async def test_returns_only_bridge_links() -> None:
     gateway = FakeVPNAccessGateway()
     gateway.links_by_customer["tg:1"] = [
         AccessLink(kind="FREEDOM", state="READY", uri="vless://freedom"),
@@ -17,7 +17,6 @@ async def test_returns_links_from_gateway_regardless_of_kind() -> None:
     links = await use_case.execute(customer_id="tg:1")
 
     assert links == [
-        AccessLink(kind="FREEDOM", state="READY", uri="vless://freedom"),
         AccessLink(kind="BRIDGE", state="READY", uri="vless://bridge"),
     ]
 

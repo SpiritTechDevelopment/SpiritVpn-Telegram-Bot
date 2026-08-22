@@ -20,12 +20,10 @@
         --border: rgba(255, 255, 255, 0.09);
         --code-bg: rgba(255, 255, 255, 0.05);
         --card-shadow: 0 24px 56px -20px rgba(0, 0, 0, 0.55);
-        --button-shadow:
-          0 8px 18px -8px color-mix(in srgb, var(--accent) 35%, transparent),
-          0 18px 40px -16px rgba(0, 0, 0, 0.55);
+        --button-shadow: 0 8px 20px -10px color-mix(in srgb, var(--accent) 30%, transparent);
         --buy-shadow:
-          0 6px 14px -6px color-mix(in srgb, var(--accent) 35%, transparent),
-          0 12px 26px -12px rgba(0, 0, 0, 0.55);
+          0 8px 20px -10px color-mix(in srgb, var(--accent) 40%, transparent),
+          inset 0 1px 0 rgba(255, 255, 255, 0.1);
       }
       * {
         box-sizing: border-box;
@@ -278,13 +276,42 @@
         font-family: inherit;
         padding: 0;
       }
+      @keyframes success-pop {
+        0% {
+          transform: scale(0.97);
+        }
+        45% {
+          transform: scale(1.035);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+      @keyframes check-draw {
+        from {
+          stroke-dashoffset: 24;
+        }
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .btn-primary.copied {
+          animation: none;
+        }
+        .btn-primary.copied .check-path {
+          animation: none;
+          stroke-dashoffset: 0;
+        }
+      }
       .btn-primary {
         width: 100%;
         height: 48px;
-        border: none;
+        border: 1px solid rgba(255, 255, 255, 0.18);
         border-radius: 14px;
-        background: var(--text);
-        color: var(--bg);
+        background: rgba(255, 255, 255, 0.06);
+        backdrop-filter: blur(6px);
+        color: var(--text);
         font-size: 0.88rem;
         font-weight: 600;
         display: flex;
@@ -292,30 +319,66 @@
         justify-content: center;
         gap: 0.5rem;
         box-shadow: var(--button-shadow);
-        transition: opacity 0.15s;
+        transition:
+          transform 0.15s,
+          background 0.25s,
+          border-color 0.25s,
+          color 0.25s,
+          box-shadow 0.25s;
         margin-top: 1.1rem;
       }
-      .btn-primary:hover {
-        opacity: 0.86;
+      .btn-primary:active {
+        transform: scale(0.98);
+        background: rgba(255, 255, 255, 0.14);
       }
       .btn-primary svg {
         stroke: var(--accent);
+      }
+      .btn-primary .icon-check {
+        display: none;
+      }
+      .btn-primary.copied {
+        animation: success-pop 0.45s ease-out;
+        background: rgba(250, 244, 237, 0.9);
+        border-color: rgba(255, 255, 255, 0.35);
+        color: #211c17;
+        box-shadow:
+          0 8px 20px -10px color-mix(in srgb, var(--accent) 40%, transparent),
+          inset 0 1px 0 rgba(255, 255, 255, 0.4);
+      }
+      .btn-primary.copied .icon-link {
+        display: none;
+      }
+      .btn-primary.copied .icon-check {
+        display: block;
+      }
+      .btn-primary.copied .check-path {
+        stroke-dasharray: 24;
+        animation: check-draw 0.3s ease-out 0.08s forwards;
       }
       .btn-buy {
         flex-shrink: 0;
         width: 44px;
         height: 44px;
-        border: none;
         border-radius: 14px;
-        background: var(--text);
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        backdrop-filter: blur(6px);
         display: flex;
         align-items: center;
         justify-content: center;
         box-shadow: var(--buy-shadow);
-        transition: opacity 0.15s;
+        transition:
+          transform 0.15s,
+          background 0.15s,
+          box-shadow 0.15s;
       }
-      .btn-buy:hover {
-        opacity: 0.86;
+      .btn-buy:active {
+        transform: scale(0.93);
+        background: rgba(255, 255, 255, 0.16);
+        box-shadow:
+          0 4px 10px -6px color-mix(in srgb, var(--accent) 50%, transparent),
+          inset 0 1px 0 rgba(255, 255, 255, 0.14);
       }
       .btn-buy svg {
         stroke: var(--accent);
@@ -406,6 +469,7 @@
       <button id="toggle-servers" style="display: none"></button>
       <button id="copy-btn" class="btn-primary" style="display: none">
         <svg
+          class="icon-link"
           width="16"
           height="16"
           viewBox="0 0 24 24"
@@ -421,7 +485,19 @@
             d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"
           ></path>
         </svg>
-        Скопировать ссылку подписки
+        <svg
+          class="icon-check"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke-width="2.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path class="check-path" d="M20 6 9 17l-5-5"></path>
+        </svg>
+        <span class="copy-label">Скопировать ссылку подписки</span>
       </button>
       <div id="status-empty" class="status-empty" style="display: none">
         <svg
@@ -764,9 +840,11 @@
           copyBtn.onclick = async () => {
             await navigator.clipboard.writeText(subscriptionUrl);
             tg.HapticFeedback?.notificationOccurred("success");
-            const label = copyBtn.lastChild;
+            const label = copyBtn.querySelector(".copy-label");
+            copyBtn.classList.add("copied");
             label.textContent = "Скопировано";
             setTimeout(() => {
+              copyBtn.classList.remove("copied");
               label.textContent = "Скопировать ссылку подписки";
             }, 1500);
           };

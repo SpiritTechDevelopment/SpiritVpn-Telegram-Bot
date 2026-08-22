@@ -95,6 +95,39 @@
         border-radius: 999px;
         padding: 0.25rem 0.6rem;
       }
+      @keyframes shimmer-sweep {
+        0% {
+          background-position: -150% 0;
+        }
+        100% {
+          background-position: 150% 0;
+        }
+      }
+      .skel {
+        display: block;
+        background-color: rgba(255, 255, 255, 0.06);
+        background-image: linear-gradient(
+          90deg,
+          rgba(255, 255, 255, 0.06) 0%,
+          rgba(255, 255, 255, 0.06) 40%,
+          rgba(255, 255, 255, 0.15) 50%,
+          rgba(255, 255, 255, 0.06) 60%,
+          rgba(255, 255, 255, 0.06) 100%
+        );
+        background-size: 200% 100%;
+        animation: shimmer-sweep 2.2s ease-in-out infinite;
+        border-radius: 4px;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .skel {
+          animation: none;
+        }
+      }
+      .status-skeleton,
+      .plans-skeleton {
+        display: flex;
+        flex-direction: column;
+      }
       #status-line {
         font-size: 1rem;
         font-weight: 600;
@@ -318,13 +351,58 @@
       <div class="card-header">
         <p class="kicker"><span>Статус</span></p>
         <span id="days-left-chip" style="display: none"></span>
+        <span
+          id="days-left-skeleton"
+          class="skel"
+          style="width: 88px; height: 22px; border-radius: 999px"
+        ></span>
       </div>
-      <p id="status-line">Загрузка…</p>
+
+      <div id="status-skeleton" class="status-skeleton">
+        <span class="skel" style="width: 65%; height: 16px; margin-bottom: 16px"></span>
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px">
+          <div style="display: flex; gap: 3px; flex-grow: 1">
+            <span class="skel" style="flex-grow: 1; height: 10px; border-radius: 5px"></span>
+            <span class="skel" style="flex-grow: 1; height: 10px; border-radius: 5px"></span>
+            <span class="skel" style="flex-grow: 1; height: 10px; border-radius: 5px"></span>
+          </div>
+          <span class="skel" style="width: 26px; height: 14px"></span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 17.6px">
+          <div style="display: flex; align-items: center; gap: 9.6px">
+            <span class="skel" style="width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0"></span>
+            <span class="skel" style="width: 20px; height: 14px; border-radius: 2px; flex-shrink: 0"></span>
+            <div style="display: flex; flex-direction: column; gap: 5px">
+              <span class="skel" style="width: 96px; height: 13px"></span>
+              <span class="skel" style="width: 64px; height: 11px"></span>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 9.6px">
+            <span class="skel" style="width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0"></span>
+            <span class="skel" style="width: 20px; height: 14px; border-radius: 2px; flex-shrink: 0"></span>
+            <div style="display: flex; flex-direction: column; gap: 5px">
+              <span class="skel" style="width: 82px; height: 13px"></span>
+              <span class="skel" style="width: 58px; height: 11px"></span>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 9.6px">
+            <span class="skel" style="width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0"></span>
+            <span class="skel" style="width: 20px; height: 14px; border-radius: 2px; flex-shrink: 0"></span>
+            <div style="display: flex; flex-direction: column; gap: 5px">
+              <span class="skel" style="width: 70px; height: 13px"></span>
+              <span class="skel" style="width: 46px; height: 11px"></span>
+            </div>
+          </div>
+        </div>
+        <span class="skel" style="width: 100%; height: 48px; border-radius: 14px"></span>
+      </div>
+
+      <p id="status-line" style="display: none"></p>
       <div id="health-row" style="display: none">
         <div id="health-bar"></div>
         <span id="health-fraction"></span>
       </div>
-      <div id="servers"></div>
+      <div id="servers" style="display: none"></div>
       <button id="toggle-servers" style="display: none"></button>
       <button id="copy-btn" class="btn-primary" style="display: none">
         <svg
@@ -366,10 +444,30 @@
 
     <section class="card">
       <p class="kicker"><span id="tariffs-kicker-label">Тарифы</span></p>
+
+      <div id="plans-skeleton" class="plans-skeleton">
+        <div style="display: flex; align-items: center; gap: 12px; padding: 12px 0">
+          <div style="display: flex; flex-direction: column; gap: 6px; flex-grow: 1">
+            <span class="skel" style="width: 88px; height: 14px"></span>
+            <span class="skel" style="width: 56px; height: 12px"></span>
+          </div>
+          <span class="skel" style="width: 44px; height: 44px; border-radius: 14px; flex-shrink: 0"></span>
+        </div>
+        <div
+          style="display: flex; align-items: center; gap: 12px; padding: 12px 0 0; border-top: 1px solid var(--border)"
+        >
+          <div style="display: flex; flex-direction: column; gap: 6px; flex-grow: 1">
+            <span class="skel" style="width: 96px; height: 14px"></span>
+            <span class="skel" style="width: 56px; height: 12px"></span>
+          </div>
+          <span class="skel" style="width: 44px; height: 44px; border-radius: 14px; flex-shrink: 0"></span>
+        </div>
+      </div>
+
       <p class="empty-state" id="plans-empty" style="display: none">
         Платные тарифы скоро появятся.
       </p>
-      <div id="plans"></div>
+      <div id="plans" style="display: none"></div>
     </section>
 
     <div id="toast"></div>
@@ -418,11 +516,6 @@
         },
       };
 
-      // Фоллбэк на переходный период для нод, ещё не переименованных под
-      // "[код страны] [имя] [номер]" — сопоставление по старому свободному
-      // имени (может быть городом, как "amsterdam", либо уже страной, как
-      // "russia"). Удалить, когда все ноды в манифесте переедут на новый
-      // формат.
       const COUNTRY_CODE_BY_LEGACY_NAME = {
         amsterdam: "NL",
         frankfurt: "DE",
@@ -441,12 +534,6 @@
         return { code: null, rest: side };
       }
 
-      // Разбирает одну сторону label ("NL Amsterdam 1" либо легаси
-      // "Amsterdam") в { flag, name, detail }. name — название страны, если
-      // код страны опознан (иначе исходный текст стороны как есть); detail —
-      // город/номер ноды, только когда страна опознана и есть что показать
-      // отдельной строкой — иначе null (не дублировать name). Без detail две
-      // ноды в одной стране неотличимы друг от друга в списке.
       function countryInfoForSide(rawSide) {
         const { code, rest } = splitCountryCode(rawSide);
         const resolvedCode = code ?? COUNTRY_CODE_BY_LEGACY_NAME[rawSide.toLowerCase()];
@@ -458,12 +545,6 @@
         };
       }
 
-      // Возвращает { flagDef, displayLabel, detailLabel }. displayLabel —
-      // название страны по каждой стороне BRIDGE отдельно (раз рядом уже
-      // стоит флаг, дублировать смысл названием города незачем). detailLabel
-      // — город/номер ноды второй строкой под названием страны; null, если
-      // отличать нечем. Сторона, для которой страна не опознана, показывается
-      // как есть, без выдумывания.
       function resolveLink(label) {
         if (!label) {
           return { flagDef: null, displayLabel: null, detailLabel: null };
@@ -497,11 +578,7 @@
 
       let allLinks = [];
       let serversExpanded = false;
-      // "buy" — клиент никогда не получал доступ (первая покупка);
-      // "renew" — доступ был хоть раз, даже если сейчас не активен
-      // (истёк/заблокирован) — тарифы предлагаем как продление, не как
-      // покупку с нуля. Выставляется в loadSubscriptionStatus(), читается в
-      // loadPlans() — main() вызывает их строго в этом порядке.
+
       let tariffsMode = "buy";
 
       function showToast(text) {
@@ -604,21 +681,40 @@
         renderServers();
       };
 
-      async function loadDaysLeft() {
-        try {
-          const { days_left } = await callApi("/api/me/subscription-status");
-          if (days_left === null) {
-            return;
-          }
-          const chip = document.getElementById("days-left-chip");
-          chip.textContent = `${days_left} дней осталось`;
-          chip.style.display = "inline-block";
-        } catch (err) {
-          console.error(err);
-        }
+      function hideSkeleton() {
+        document.getElementById("status-skeleton").style.display = "none";
+        document.getElementById("days-left-skeleton").style.display = "none";
+        document.getElementById("plans-skeleton").style.display = "none";
+        document.getElementById("plans").style.display = "flex";
       }
 
-      async function loadSubscriptionStatus() {
+      function showSkeleton() {
+        document.getElementById("status-skeleton").style.display = "flex";
+        document.getElementById("days-left-skeleton").style.display = "block";
+        document.getElementById("plans-skeleton").style.display = "flex";
+        document.getElementById("days-left-chip").style.display = "none";
+        document.getElementById("status-line").style.display = "none";
+        document.getElementById("health-row").style.display = "none";
+        document.getElementById("servers").style.display = "none";
+        document.getElementById("toggle-servers").style.display = "none";
+        document.getElementById("copy-btn").style.display = "none";
+        document.getElementById("status-empty").style.display = "none";
+        document.getElementById("plans").style.display = "none";
+        document.getElementById("plans-empty").style.display = "none";
+      }
+
+      function renderDaysLeft(daysLeft) {
+        if (daysLeft === null) {
+          return;
+        }
+        const chip = document.getElementById("days-left-chip");
+        chip.textContent = `${daysLeft} дней осталось`;
+        chip.style.display = "inline-block";
+      }
+
+      function renderSubscriptionStatus(links, subscriptionUrl) {
+        allLinks = links;
+
         const statusEl = document.getElementById("status-line");
         const healthRowEl = document.getElementById("health-row");
         const serversEl = document.getElementById("servers");
@@ -628,8 +724,6 @@
         const emptyTitleEl = document.getElementById("status-empty-title");
         const emptySubtitleEl = document.getElementById("status-empty-subtitle");
         const tariffsKickerEl = document.getElementById("tariffs-kicker-label");
-
-        allLinks = await callApi("/api/me/links");
 
         const hasEverHadAccess = allLinks.length > 0;
         const hasActiveOrPending = allLinks.some(
@@ -665,24 +759,30 @@
         renderHealthBar();
         renderServers();
 
-        const { url } = await callApi("/api/me/subscription-url");
-        copyBtn.style.display = "flex";
-        copyBtn.onclick = async () => {
-          await navigator.clipboard.writeText(url);
-          tg.HapticFeedback?.notificationOccurred("success");
-          const label = copyBtn.lastChild;
-          label.textContent = "Скопировано";
-          setTimeout(() => {
-            label.textContent = "Скопировать ссылку подписки";
-          }, 1500);
-        };
+        if (subscriptionUrl) {
+          copyBtn.style.display = "flex";
+          copyBtn.onclick = async () => {
+            await navigator.clipboard.writeText(subscriptionUrl);
+            tg.HapticFeedback?.notificationOccurred("success");
+            const label = copyBtn.lastChild;
+            label.textContent = "Скопировано";
+            setTimeout(() => {
+              label.textContent = "Скопировать ссылку подписки";
+            }, 1500);
+          };
+        }
       }
 
-      async function loadPlans() {
+      function renderSubscriptionError() {
+        const statusEl = document.getElementById("status-line");
+        statusEl.style.display = "block";
+        statusEl.textContent = "Не удалось загрузить статус подписки.";
+        document.getElementById("status-empty").style.display = "none";
+      }
+
+      function renderPlans(plans) {
         const plansEl = document.getElementById("plans");
         const emptyEl = document.getElementById("plans-empty");
-
-        const plans = await fetch("/api/plans").then((r) => r.json());
 
         plansEl.innerHTML = "";
         emptyEl.style.display = "none";
@@ -724,26 +824,37 @@
       }
 
       async function main() {
-        try {
-          await loadSubscriptionStatus();
-        } catch (err) {
-          const statusEl = document.getElementById("status-line");
-          statusEl.style.display = "block";
-          statusEl.textContent = "Не удалось загрузить статус подписки.";
-          document.getElementById("status-empty").style.display = "none";
-          console.error(err);
+        showSkeleton();
+
+        const [linksResult, urlResult, daysLeftResult, plansResult] = await Promise.allSettled([
+          callApi("/api/me/links"),
+          callApi("/api/me/subscription-url"),
+          callApi("/api/me/subscription-status"),
+          fetch("/api/plans").then((r) => r.json()),
+        ]);
+
+        hideSkeleton();
+
+        if (linksResult.status === "fulfilled") {
+          renderSubscriptionStatus(
+            linksResult.value,
+            urlResult.status === "fulfilled" ? urlResult.value.url : null,
+          );
+        } else {
+          renderSubscriptionError();
+          console.error(linksResult.reason);
         }
 
-        try {
-          await loadDaysLeft();
-        } catch (err) {
-          console.error(err);
+        if (daysLeftResult.status === "fulfilled") {
+          renderDaysLeft(daysLeftResult.value.days_left);
+        } else {
+          console.error(daysLeftResult.reason);
         }
 
-        try {
-          await loadPlans();
-        } catch (err) {
-          console.error(err);
+        if (plansResult.status === "fulfilled") {
+          renderPlans(plansResult.value);
+        } else {
+          console.error(plansResult.reason);
         }
       }
 

@@ -830,7 +830,12 @@
         serversEl.style.display = "flex";
 
         const ready = allLinks.filter((l) => l.state === "READY").length;
-        statusEl.textContent = `${ready} из ${allLinks.length} серверов активны`;
+        statusEl.textContent =
+          ready === allLinks.length
+            ? "Все серверы активны"
+            : ready === 0
+              ? "Серверы активируются"
+              : "Не все серверы активны";
         healthRowEl.style.display = "flex";
         renderHealthBar();
         renderServers();

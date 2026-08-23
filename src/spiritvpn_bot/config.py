@@ -29,6 +29,13 @@ class Settings(BaseSettings):
         default=8080, description="порт, на котором `python -m spiritvpn_bot api` слушает HTTP"
     )
 
+    support_url: str = Field(
+        description="ссылка на поддержку 24/7 (аккаунт или группа в Telegram) для /start и /support"
+    )
+    reviews_url: str = Field(
+        description="ссылка на Telegram-канал с отзывами для кнопки «Отзывы» в /start"
+    )
+
     subscription_signing_key: str = Field(
         description="секрет для подписи токена /s/{token} (SubscriptionTokenSigner)"
     )

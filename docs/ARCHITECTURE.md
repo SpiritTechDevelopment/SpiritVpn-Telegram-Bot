@@ -90,9 +90,10 @@ presentation    — aiogram-бот и FastAPI mini app, оба поверх appl
 `src/spiritvpn_bot/presentation/`
 
 - `telegram_bot/` — aiogram-приложение:
-  - `handlers/start.py` — `/start`, обработка текстовых сообщений
-    (проверка на общий пароль / тест-код), маппинг `ExpiryRegression` и
-    прочих ошибок в понятный ответ клиенту.
+  - `handlers/start.py` — `/start` (видео-приветствие + кнопки приложения/
+    поддержки/отзывов), `/status`, `/plans`, `/support`, `/help`, обработка
+    текстовых сообщений (проверка на общий пароль / тест-код), маппинг
+    `ExpiryRegression` и прочих ошибок в понятный ответ клиенту.
   - `middlewares/dedup.py` — `DedupUpdatesMiddleware`: защита от повторной
     обработки одного и того же Telegram `update_id`
     (Postgres-backed `UpdatesGuard`) — актуально при `getUpdates`

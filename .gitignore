@@ -13,3 +13,4 @@ coverage.xml
 htmlcov/
 certs/
 *.log
+.DS_Store

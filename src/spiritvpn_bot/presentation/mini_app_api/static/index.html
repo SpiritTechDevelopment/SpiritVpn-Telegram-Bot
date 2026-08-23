@@ -139,8 +139,29 @@
         gap: 0.75rem;
         padding: 1.25rem 0.75rem 0.5rem;
       }
-      .status-empty svg {
-        stroke: var(--hint);
+      @keyframes ring-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @keyframes ring-spin-reverse {
+        to {
+          transform: rotate(-360deg);
+        }
+      }
+      .ring-outer {
+        transform-origin: 60px 60px;
+        animation: ring-spin 9s linear infinite;
+      }
+      .ring-inner {
+        transform-origin: 60px 60px;
+        animation: ring-spin-reverse 6.5s linear infinite;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ring-outer,
+        .ring-inner {
+          animation: none;
+        }
       }
       .status-empty-text {
         display: flex;
@@ -500,16 +521,28 @@
         <span class="copy-label">Скопировать ссылку подписки</span>
       </button>
       <div id="status-empty" class="status-empty" style="display: none">
-        <svg
-          width="40"
-          height="40"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke-width="1.6"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path>
+        <svg width="56" height="56" viewBox="0 0 120 120" fill="none">
+          <circle
+            class="ring-outer"
+            cx="60"
+            cy="60"
+            r="46"
+            stroke="#ffffff"
+            stroke-width="7"
+            stroke-dasharray="200 89"
+            stroke-linecap="round"
+          ></circle>
+          <circle
+            class="ring-inner"
+            cx="60"
+            cy="60"
+            r="30"
+            stroke="var(--accent)"
+            stroke-width="7"
+            stroke-dasharray="120 69"
+            stroke-linecap="round"
+          ></circle>
+          <circle cx="60" cy="60" r="10" fill="#ffffff"></circle>
         </svg>
         <div class="status-empty-text">
           <span id="status-empty-title"></span>

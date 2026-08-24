@@ -230,11 +230,12 @@ async def _handle_dev_create_link(
         num_bytes=num_bytes,
     )
     customer_id, links = await use_case.execute(minutes=minutes, num_bytes=num_bytes)
+    header = f"customer_id: {customer_id}\nминуты: {minutes}, байты: {num_bytes}"
     if links is None:
-        await message.answer(f"customer_id: {customer_id}\nСсылка не готова за отведённое время.")
+        await message.answer(f"{header}\nСсылка не готова за отведённое время.")
         return
     uris = "\n".join(link.uri for link in links if link.uri)
-    await message.answer(f"customer_id: {customer_id}\n\n{uris}")
+    await message.answer(f"{header}\n\n{uris}")
 
 
 async def handle_text(

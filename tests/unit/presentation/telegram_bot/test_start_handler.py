@@ -448,7 +448,10 @@ async def test_dev_create_link_works_for_admin_with_strict_format() -> None:
     )
 
     assert len(message.answers) == 1
-    assert "vless://dev-link" in message.answers[0].text
+    reply = message.answers[0].text
+    assert "vless://dev-link" in reply
+    assert "минуты: 15" in reply
+    assert "байты: 1000" in reply
     assert len(dev_gateway.applied) == 1
     assert dev_gateway.applied[0].fleet_id == DEV_FLEET_ID
     assert dev_gateway.applied[0].quota_bytes == 1000

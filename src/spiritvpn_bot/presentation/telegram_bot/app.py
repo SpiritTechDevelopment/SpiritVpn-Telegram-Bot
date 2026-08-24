@@ -4,6 +4,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.types import BotCommand
 
 from spiritvpn_bot.application.ports.updates_guard import UpdatesGuard
+from spiritvpn_bot.application.use_cases.create_dev_access_link import CreateDevAccessLinkUseCase
 from spiritvpn_bot.di import Container
 from spiritvpn_bot.presentation.telegram_bot.handlers.start import router as start_router
 from spiritvpn_bot.presentation.telegram_bot.middlewares.dedup import DedupUpdatesMiddleware
@@ -33,6 +34,9 @@ async def run_bot(container: Container) -> None:
     bot = Bot(token=container.settings.telegram_bot_token)
     await bot.set_my_commands(BOT_COMMANDS)
     dp = build_dispatcher(updates_guard=container.updates_guard)
+    dev_create_link_use_case = CreateDevAccessLinkUseCase(
+        container.vpn_gateway, container.settings.friends_plan_fleet_id
+    )
     await dp.start_polling(
         bot,
         redeem_friend_code_factory=container.redeem_friend_code_use_case,
@@ -45,4 +49,6 @@ async def run_bot(container: Container) -> None:
         support_url=container.settings.support_url,
         reviews_url=container.settings.reviews_url,
         plans=container.plans,
+        dev_admin_user_ids=container.settings.dev_admin_user_id_set(),
+        dev_create_link_use_case=dev_create_link_use_case,
     )

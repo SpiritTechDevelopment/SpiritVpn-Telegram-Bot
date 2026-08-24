@@ -31,6 +31,9 @@ BOT_DATABASE_URL="postgresql+asyncpg://spiritvpn_bot:spiritvpn_bot@localhost:543
 ```
 poetry run python -m spiritvpn_bot bot   # long polling
 poetry run python -m spiritvpn_bot api   # mini app + /s/{token}
+
+# dev/тест: выдать доступ рандомному customer_id на N минут и M байт, минуя Order/оплату
+poetry run python -m spiritvpn_bot create-link 10 1073741824
 ```
 
 ## Переменные окружения

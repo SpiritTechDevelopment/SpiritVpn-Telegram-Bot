@@ -93,7 +93,11 @@ presentation    — aiogram-бот и FastAPI mini app, оба поверх appl
   - `handlers/start.py` — `/start` (видео-приветствие + кнопки приложения/
     поддержки/отзывов), `/status`, `/plans`, `/support`, `/help`, обработка
     текстовых сообщений (проверка на общий пароль / тест-код), маппинг
-    `ExpiryRegression` и прочих ошибок в понятный ответ клиенту.
+    `ExpiryRegression` и прочих ошибок в понятный ответ клиенту. Там же —
+    скрытая (не в `/help`, не в меню бота) dev-команда
+    `create_<минуты>_<байты>`: строгий формат, работает только для id из
+    `BOT_DEV_ADMIN_USER_IDS`, для всех остальных падает в обычный флоу
+    неотличимо от любого другого текста (см. `CreateDevAccessLinkUseCase`).
   - `middlewares/dedup.py` — `DedupUpdatesMiddleware`: защита от повторной
     обработки одного и того же Telegram `update_id`
     (Postgres-backed `UpdatesGuard`) — актуально при `getUpdates`

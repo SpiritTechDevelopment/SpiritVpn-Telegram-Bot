@@ -11,6 +11,7 @@ from spiritvpn_bot.application.errors import ExpiryRegression
 from spiritvpn_bot.application.plans import build_plan_catalog
 from spiritvpn_bot.application.ports.vpn_gateway import AccessLink
 from spiritvpn_bot.application.subscription_token import SubscriptionTokenSigner
+from spiritvpn_bot.application.use_cases.create_dev_access_link import CreateDevAccessLinkUseCase
 from spiritvpn_bot.application.use_cases.get_my_links import GetMyLinksUseCase
 from spiritvpn_bot.application.use_cases.get_subscription_status import (
     GetSubscriptionStatusUseCase,
@@ -46,6 +47,16 @@ SUPPORT_URL = "https://t.me/support_test"
 REVIEWS_URL = "https://t.me/reviews_test"
 SIGNING_KEY = b"test-signing-key"
 SHARED_CODE = "letmein"
+
+DEV_FLEET_ID = 1
+DEV_ADMIN_ID = 999
+DEV_ADMIN_IDS = frozenset({DEV_ADMIN_ID})
+# ни один тест ниже, кроме dev_create_link-тестов, не должен реально дёргать
+# use case — dev_admin_user_ids у них всегда пустой/чужой, так что это
+# просто заглушка под сигнатуру handle_text.
+DUMMY_DEV_USE_CASE = CreateDevAccessLinkUseCase(
+    FakeVPNAccessGateway(), DEV_FLEET_ID, max_attempts=1, poll_interval_seconds=0
+)
 
 
 @dataclass
@@ -140,6 +151,8 @@ async def test_correct_shared_code_grants_access() -> None:
         signer,
         SUBSCRIPTION_BASE_URL,
         MINI_APP_URL,
+        DEV_ADMIN_IDS,
+        DUMMY_DEV_USE_CASE,
     )
 
     assert len(message.answers) == 1
@@ -162,6 +175,8 @@ async def test_wrong_text_gets_generic_fallback_not_mentioning_a_code() -> None:
         signer,
         SUBSCRIPTION_BASE_URL,
         MINI_APP_URL,
+        DEV_ADMIN_IDS,
+        DUMMY_DEV_USE_CASE,
     )
 
     assert len(message.answers) == 1
@@ -176,7 +191,15 @@ async def test_wrong_code_and_random_text_get_identical_reply() -> None:
     # непонятного сообщения — иначе перебором можно нащупать, что он есть
     uow, gateway, redeem, request_access = build_use_cases()
     signer = SubscriptionTokenSigner(SIGNING_KEY)
-    args = (lambda: redeem, lambda: request_access, signer, SUBSCRIPTION_BASE_URL, MINI_APP_URL)
+    args = (
+        lambda: redeem,
+        lambda: request_access,
+        signer,
+        SUBSCRIPTION_BASE_URL,
+        MINI_APP_URL,
+        DEV_ADMIN_IDS,
+        DUMMY_DEV_USE_CASE,
+    )
 
     almost_right = FakeMessage(from_user=FakeUser(id=1), text=SHARED_CODE + "x")
     random_text = FakeMessage(from_user=FakeUser(id=2), text="какой-то текст")
@@ -191,7 +214,15 @@ async def test_shared_code_can_be_reused_by_anyone_who_knows_it() -> None:
     # не персональный код: второй пользователь с тем же паролем тоже получает доступ
     uow, gateway, redeem, request_access = build_use_cases()
     signer = SubscriptionTokenSigner(SIGNING_KEY)
-    args = (lambda: redeem, lambda: request_access, signer, SUBSCRIPTION_BASE_URL, MINI_APP_URL)
+    args = (
+        lambda: redeem,
+        lambda: request_access,
+        signer,
+        SUBSCRIPTION_BASE_URL,
+        MINI_APP_URL,
+        DEV_ADMIN_IDS,
+        DUMMY_DEV_USE_CASE,
+    )
 
     first = FakeMessage(from_user=FakeUser(id=1), text=SHARED_CODE)
     second = FakeMessage(from_user=FakeUser(id=2), text=SHARED_CODE)
@@ -233,6 +264,8 @@ async def test_gateway_failure_after_match_still_replies() -> None:
         signer,
         SUBSCRIPTION_BASE_URL,
         MINI_APP_URL,
+        DEV_ADMIN_IDS,
+        DUMMY_DEV_USE_CASE,
     )
 
     assert len(message.answers) == 1
@@ -254,6 +287,8 @@ async def test_expiry_regression_gets_a_specific_explanation() -> None:
         signer,
         SUBSCRIPTION_BASE_URL,
         MINI_APP_URL,
+        DEV_ADMIN_IDS,
+        DUMMY_DEV_USE_CASE,
     )
 
     assert len(message.answers) == 1
@@ -375,3 +410,116 @@ async def test_help_lists_all_commands() -> None:
     text = message.answers[0].text
     for command in ("/start", "/status", "/plans", "/support", "/help"):
         assert command in text
+
+
+class _AnyCustomerGateway(FakeVPNAccessGateway):
+    """Отдаёт один и тот же набор ссылок для любого customer_id — dev use case
+    сам генерирует рандомный id, тест заранее его не знает."""
+
+    def __init__(self, links: list[AccessLink]) -> None:
+        super().__init__()
+        self._links = links
+
+    async def get_links(self, *, customer_id: str) -> list[AccessLink]:
+        self.journal.append(f"get_links:{customer_id}")
+        return self._links
+
+
+async def test_dev_create_link_works_for_admin_with_strict_format() -> None:
+    uow, _unused_gateway, redeem, request_access = build_use_cases()
+    dev_gateway = _AnyCustomerGateway(
+        [AccessLink(kind="BRIDGE", state="READY", uri="vless://dev-link")]
+    )
+    use_case = CreateDevAccessLinkUseCase(
+        dev_gateway, DEV_FLEET_ID, max_attempts=1, poll_interval_seconds=0
+    )
+    signer = SubscriptionTokenSigner(SIGNING_KEY)
+    message = FakeMessage(from_user=FakeUser(id=DEV_ADMIN_ID), text="create_15_1000")
+
+    await handle_text(
+        message,  # type: ignore[arg-type]
+        lambda: redeem,
+        lambda: request_access,
+        signer,
+        SUBSCRIPTION_BASE_URL,
+        MINI_APP_URL,
+        DEV_ADMIN_IDS,
+        use_case,
+    )
+
+    assert len(message.answers) == 1
+    assert "vless://dev-link" in message.answers[0].text
+    assert len(dev_gateway.applied) == 1
+    assert dev_gateway.applied[0].fleet_id == DEV_FLEET_ID
+    assert dev_gateway.applied[0].quota_bytes == 1000
+    assert dev_gateway.applied[0].customer_id.startswith("dev:")
+
+
+async def test_dev_create_link_ignored_for_non_admin_same_as_any_wrong_text() -> None:
+    # угадавший формат, но не из списка админов, не должен получать отличимый
+    # от обычного "непонятного текста" ответ — иначе формат легко нащупать
+    uow, gateway, redeem, request_access = build_use_cases()
+    signer = SubscriptionTokenSigner(SIGNING_KEY)
+    args = (
+        lambda: redeem,
+        lambda: request_access,
+        signer,
+        SUBSCRIPTION_BASE_URL,
+        MINI_APP_URL,
+        DEV_ADMIN_IDS,
+        DUMMY_DEV_USE_CASE,
+    )
+
+    non_admin_dev_format = FakeMessage(from_user=FakeUser(id=1), text="create_15_1000")
+    random_text = FakeMessage(from_user=FakeUser(id=2), text="какой-то текст")
+
+    await handle_text(non_admin_dev_format, *args)  # type: ignore[arg-type]
+    await handle_text(random_text, *args)  # type: ignore[arg-type]
+
+    assert non_admin_dev_format.answers[0].text == random_text.answers[0].text
+    assert gateway.applied == []
+
+
+async def test_dev_create_link_requires_exact_format_even_for_admin() -> None:
+    uow, gateway, redeem, request_access = build_use_cases()
+    signer = SubscriptionTokenSigner(SIGNING_KEY)
+    args = (
+        lambda: redeem,
+        lambda: request_access,
+        signer,
+        SUBSCRIPTION_BASE_URL,
+        MINI_APP_URL,
+        DEV_ADMIN_IDS,
+        DUMMY_DEV_USE_CASE,
+    )
+
+    almost_no_bytes = FakeMessage(from_user=FakeUser(id=DEV_ADMIN_ID), text="create_15")
+    non_numeric = FakeMessage(from_user=FakeUser(id=DEV_ADMIN_ID), text="create_15_abc")
+    with_prefix = FakeMessage(from_user=FakeUser(id=DEV_ADMIN_ID), text="please create_15_1000")
+
+    for message in (almost_no_bytes, non_numeric, with_prefix):
+        await handle_text(message, *args)  # type: ignore[arg-type]
+        assert "vless://" not in message.answers[0].text
+
+
+async def test_dev_create_link_reports_timeout_if_never_ready() -> None:
+    dev_gateway = _AnyCustomerGateway([AccessLink(kind="BRIDGE", state="PENDING")])
+    use_case = CreateDevAccessLinkUseCase(
+        dev_gateway, DEV_FLEET_ID, max_attempts=1, poll_interval_seconds=0
+    )
+    uow, _unused_gateway, redeem, request_access = build_use_cases()
+    signer = SubscriptionTokenSigner(SIGNING_KEY)
+    message = FakeMessage(from_user=FakeUser(id=DEV_ADMIN_ID), text="create_1_1")
+
+    await handle_text(
+        message,  # type: ignore[arg-type]
+        lambda: redeem,
+        lambda: request_access,
+        signer,
+        SUBSCRIPTION_BASE_URL,
+        MINI_APP_URL,
+        DEV_ADMIN_IDS,
+        use_case,
+    )
+
+    assert "не готова" in message.answers[0].text.lower()

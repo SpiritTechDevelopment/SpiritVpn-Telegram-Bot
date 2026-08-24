@@ -8,6 +8,7 @@ import sys
 import uvicorn
 from aiogram import Bot
 
+from spiritvpn_bot.application.use_cases.create_dev_access_link import CreateDevAccessLinkUseCase
 from spiritvpn_bot.config import Settings, load_settings
 from spiritvpn_bot.di import build_container
 from spiritvpn_bot.logging import configure_logging, get_logger, set_error_sink
@@ -74,9 +75,58 @@ def _run_api() -> None:
     asyncio.run(_main())
 
 
+def _run_create_link(minutes: int, num_bytes: int) -> None:
+    """Dev утилита: выдаёт доступ рандомному customer_id на N минут и M байт,
+    минуя Order/оплату — только для ручного тестирования на тестовом флите.
+    """
+    settings = load_settings()
+    configure_logging(settings.log_level)
+    logger.info(
+        "dev_create_link_invoked",
+        source="cli",
+        fleet_id=settings.friends_plan_fleet_id,
+        minutes=minutes,
+        num_bytes=num_bytes,
+    )
+
+    async def _main() -> None:
+        container = build_container(settings)
+        use_case = CreateDevAccessLinkUseCase(container.vpn_gateway, settings.friends_plan_fleet_id)
+
+        print(f"fleet_id: {settings.friends_plan_fleet_id}, {minutes} мин, {num_bytes} байт")
+        print("выдаю доступ и жду готовую ссылку от spiritvpnd...")
+
+        customer_id, links = await use_case.execute(minutes=minutes, num_bytes=num_bytes)
+        print(f"customer_id: {customer_id}")
+
+        if links is None:
+            print("ссылка не готова за отведённое время", file=sys.stderr)
+            sys.exit(1)
+
+        print()
+        for link in links:
+            print(link.uri)
+
+    try:
+        asyncio.run(_main())
+    except Exception as exc:
+        print(f"ошибка: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+
 def main() -> None:
+    if len(sys.argv) >= 2 and sys.argv[1] == "create-link":
+        if len(sys.argv) != 4:
+            print(
+                "использование: python -m spiritvpn_bot create-link <минуты> <байты>",
+                file=sys.stderr,
+            )
+            sys.exit(2)
+        _run_create_link(int(sys.argv[2]), int(sys.argv[3]))
+        return
+
     if len(sys.argv) != 2 or sys.argv[1] not in ("bot", "api"):
-        print("использование: python -m spiritvpn_bot bot|api", file=sys.stderr)
+        print("использование: python -m spiritvpn_bot bot|api|create-link", file=sys.stderr)
         sys.exit(2)
 
     if sys.argv[1] == "bot":

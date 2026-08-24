@@ -54,6 +54,19 @@ class Settings(BaseSettings):
         )
     )
 
+    dev_admin_user_ids: str = Field(
+        default="",
+        description=(
+            "Telegram user id через запятую, кому в чате бота доступна dev-команда "
+            "create_<минуты>_<байты> (мгновенная выдача VPN-доступа мимо оплаты, "
+            "только для тестирования); пусто — команда выключена для всех"
+        ),
+    )
+
+    def dev_admin_user_id_set(self) -> frozenset[int]:
+        """Распарсенный набор id из dev_admin_user_ids."""
+        return frozenset(int(x) for x in self.dev_admin_user_ids.split(",") if x.strip())
+
     error_notifications_chat_id: str | None = Field(
         default=None,
         validation_alias="TELEGRAM_CHAT_ID",

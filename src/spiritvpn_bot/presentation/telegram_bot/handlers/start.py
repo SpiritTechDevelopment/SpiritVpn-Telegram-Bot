@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 from pathlib import Path
 
@@ -17,6 +18,7 @@ from aiogram.types import (
 from spiritvpn_bot.application.errors import ExpiryRegression
 from spiritvpn_bot.application.plans import PlanCatalog
 from spiritvpn_bot.application.subscription_token import SubscriptionTokenSigner
+from spiritvpn_bot.application.use_cases.create_dev_access_link import CreateDevAccessLinkUseCase
 from spiritvpn_bot.application.use_cases.get_my_links import GetMyLinksUseCase
 from spiritvpn_bot.application.use_cases.get_subscription_status import (
     GetSubscriptionStatusUseCase,
@@ -52,6 +54,8 @@ HELP_TEXT = (
 )
 
 _welcome_video_file_id: str | None = None
+
+_DEV_CREATE_LINK_RE = re.compile(r"^create_(\d+)_(\d+)$")
 
 
 def _mini_app_button(mini_app_url: str) -> InlineKeyboardButton:
@@ -211,6 +215,28 @@ async def handle_help(message: Message, mini_app_url: str) -> None:
     await answer_with_mini_app(message, HELP_TEXT, mini_app_url)
 
 
+async def _handle_dev_create_link(
+    message: Message,
+    use_case: CreateDevAccessLinkUseCase,
+    minutes: int,
+    num_bytes: int,
+) -> None:
+    assert message.from_user is not None
+    logger.info(
+        "dev_create_link_invoked",
+        source="bot",
+        requested_by=message.from_user.id,
+        minutes=minutes,
+        num_bytes=num_bytes,
+    )
+    customer_id, links = await use_case.execute(minutes=minutes, num_bytes=num_bytes)
+    if links is None:
+        await message.answer(f"customer_id: {customer_id}\nСсылка не готова за отведённое время.")
+        return
+    uris = "\n".join(link.uri for link in links if link.uri)
+    await message.answer(f"customer_id: {customer_id}\n\n{uris}")
+
+
 async def handle_text(
     message: Message,
     redeem_friend_code_factory: Callable[[], RedeemFriendCodeUseCase],
@@ -218,8 +244,16 @@ async def handle_text(
     token_signer: SubscriptionTokenSigner,
     subscription_base_url: str,
     mini_app_url: str,
+    dev_admin_user_ids: frozenset[int],
+    dev_create_link_use_case: CreateDevAccessLinkUseCase,
 ) -> None:
     """Любое обычное сообщение (не команда) — проверка пароля(если это free план) и выдача подписки.
+
+    Строго распознаёт create_<минуты>_<байты> для админов из dev_admin_user_ids
+    (см. CreateDevAccessLinkUseCase) — и только для них, чтобы паттерн нельзя
+    было угадать/перебрать: для всех остальных (не тот формат, не тот
+    отправитель) сообщение падает в обычный флоу ниже, без каких-либо отличий
+    в поведении.
 
     Args:
         message: входящее сообщение.
@@ -228,9 +262,22 @@ async def handle_text(
         token_signer: подпись токена подписочной ссылки.
         subscription_base_url: публичный базовый URL для /s/{token}.
         mini_app_url: публичный URL мини-аппа для кнопки.
+        dev_admin_user_ids: id, кому доступна create_<минуты>_<байты>.
+        dev_create_link_use_case: use case выдачи dev-доступа.
     """
     assert message.from_user is not None
     assert message.text is not None
+
+    dev_match = _DEV_CREATE_LINK_RE.match(message.text.strip())
+    if dev_match and message.from_user.id in dev_admin_user_ids:
+        await _handle_dev_create_link(
+            message,
+            dev_create_link_use_case,
+            int(dev_match.group(1)),
+            int(dev_match.group(2)),
+        )
+        return
+
     customer_id = f"tg:{message.from_user.id}"
 
     order = await redeem_friend_code_factory().execute(

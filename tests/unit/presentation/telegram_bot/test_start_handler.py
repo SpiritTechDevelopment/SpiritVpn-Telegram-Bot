@@ -71,8 +71,8 @@ class FakeAnswer:
 
 
 @dataclass
-class FakeVideoAnswer:
-    video: Any
+class FakeAnimationAnswer:
+    animation: Any
     caption: str
     reply_markup: Any = None
 
@@ -80,12 +80,12 @@ class FakeVideoAnswer:
 @dataclass
 class FakeMessage:
     """Двойник aiogram.types.Message: хендлер трогает только from_user,
-    text, answer() и answer_video(), настоящий Bot/сессия для теста не нужны."""
+    text, answer() и answer_animation(), настоящий Bot/сессия для теста не нужны."""
 
     from_user: FakeUser
     text: str | None = None
     answers: list[FakeAnswer] = field(default_factory=list)
-    video_answers: list[FakeVideoAnswer] = field(default_factory=list)
+    animation_answers: list[FakeAnimationAnswer] = field(default_factory=list)
     reject_button_urls: bool = False
 
     async def answer(self, text: str, reply_markup: Any = None) -> None:
@@ -93,13 +93,13 @@ class FakeMessage:
             raise self._button_rejected()
         self.answers.append(FakeAnswer(text, reply_markup))
 
-    async def answer_video(
-        self, video: Any, caption: str = "", reply_markup: Any = None
+    async def answer_animation(
+        self, animation: Any, caption: str = "", reply_markup: Any = None
     ) -> SimpleNamespace:
         if reply_markup is not None and self.reject_button_urls:
             raise self._button_rejected()
-        self.video_answers.append(FakeVideoAnswer(video, caption, reply_markup))
-        return SimpleNamespace(video=None)
+        self.animation_answers.append(FakeAnimationAnswer(animation, caption, reply_markup))
+        return SimpleNamespace(animation=None)
 
     @staticmethod
     def _button_rejected() -> TelegramBadRequest:
@@ -124,19 +124,19 @@ def build_use_cases() -> (
     return uow, gateway, redeem, request_access
 
 
-async def test_start_shows_welcome_video_and_buttons() -> None:
+async def test_start_shows_welcome_animation_and_buttons() -> None:
     message = FakeMessage(from_user=FakeUser(id=1))
 
     await handle_start(message, MINI_APP_URL, SUPPORT_URL, REVIEWS_URL)  # type: ignore[arg-type]
 
-    assert len(message.video_answers) == 1
+    assert len(message.animation_answers) == 1
     assert len(message.answers) == 0
-    video_answer = message.video_answers[0]
-    assert "SpiritVPN" in video_answer.caption
-    assert "пароль" not in video_answer.caption.lower()
-    assert "код" not in video_answer.caption.lower()
-    assert video_answer.reply_markup is not None
-    assert len(video_answer.reply_markup.inline_keyboard) == 3
+    animation_answer = message.animation_answers[0]
+    assert "SpiritVPN" in animation_answer.caption
+    assert "пароль" not in animation_answer.caption.lower()
+    assert "код" not in animation_answer.caption.lower()
+    assert animation_answer.reply_markup is not None
+    assert len(animation_answer.reply_markup.inline_keyboard) == 3
 
 
 async def test_correct_shared_code_grants_access() -> None:
@@ -235,20 +235,20 @@ async def test_shared_code_can_be_reused_by_anyone_who_knows_it() -> None:
     assert len(gateway.applied) == 2
 
 
-async def test_rejected_button_url_falls_back_to_video_with_plain_links() -> None:
+async def test_rejected_button_url_falls_back_to_animation_with_plain_links() -> None:
     message = FakeMessage(from_user=FakeUser(id=1), reject_button_urls=True)
 
     await handle_start(  # type: ignore[arg-type]
         message, "http://localhost:8081", SUPPORT_URL, REVIEWS_URL
     )
 
-    assert len(message.video_answers) == 1
-    video_answer = message.video_answers[0]
-    assert video_answer.reply_markup is None
-    assert "http://localhost:8081" in video_answer.caption
-    assert SUPPORT_URL in video_answer.caption
-    assert REVIEWS_URL in video_answer.caption
-    assert "SpiritVPN" in video_answer.caption
+    assert len(message.animation_answers) == 1
+    animation_answer = message.animation_answers[0]
+    assert animation_answer.reply_markup is None
+    assert "http://localhost:8081" in animation_answer.caption
+    assert SUPPORT_URL in animation_answer.caption
+    assert REVIEWS_URL in animation_answer.caption
+    assert "SpiritVPN" in animation_answer.caption
 
 
 async def test_gateway_failure_after_match_still_replies() -> None:
@@ -378,10 +378,12 @@ async def test_status_shows_expired_and_prompts_renewal() -> None:
     assert "продлите" in text
 
 
-async def test_plans_lists_purchasable_plans_with_price() -> None:
+async def test_plans_lists_purchasable_plans_with_price_and_regions() -> None:
+    uow = FakeUnitOfWork(InMemoryOrderRepository(), InMemoryCommandSequenceRepository())
+    status_use_case = GetSubscriptionStatusUseCase(uow, FakeClock(NOW))
     message = FakeMessage(from_user=FakeUser(id=1))
 
-    await handle_plans(message, PLANS, MINI_APP_URL)  # type: ignore[arg-type]
+    await handle_plans(message, lambda: status_use_case, PLANS, MINI_APP_URL)  # type: ignore[arg-type]
 
     text = message.answers[0].text
     assert "1 месяц" in text
@@ -389,6 +391,33 @@ async def test_plans_lists_purchasable_plans_with_price() -> None:
     assert "3 месяца" in text
     assert "300 ₽" in text
     assert "своих" not in text.lower()
+    assert "Нидерланды" in text
+    assert "подписки пока нет" in text.lower()
+
+
+async def test_plans_shows_days_left_when_subscription_active() -> None:
+    uow = FakeUnitOfWork(InMemoryOrderRepository(), InMemoryCommandSequenceRepository())
+    await uow.orders.add(_paid_order("order-1", 1, NOW + timedelta(days=12)))
+    status_use_case = GetSubscriptionStatusUseCase(uow, FakeClock(NOW))
+    message = FakeMessage(from_user=FakeUser(id=1))
+
+    await handle_plans(message, lambda: status_use_case, PLANS, MINI_APP_URL)  # type: ignore[arg-type]
+
+    text = message.answers[0].text
+    assert "12 дн" in text
+    assert "активна" in text.lower()
+
+
+async def test_plans_shows_expired_status() -> None:
+    uow = FakeUnitOfWork(InMemoryOrderRepository(), InMemoryCommandSequenceRepository())
+    await uow.orders.add(_paid_order("order-1", 1, NOW - timedelta(days=3)))
+    status_use_case = GetSubscriptionStatusUseCase(uow, FakeClock(NOW))
+    message = FakeMessage(from_user=FakeUser(id=1))
+
+    await handle_plans(message, lambda: status_use_case, PLANS, MINI_APP_URL)  # type: ignore[arg-type]
+
+    text = message.answers[0].text.lower()
+    assert "истекла" in text
 
 
 async def test_support_sends_direct_link_button() -> None:

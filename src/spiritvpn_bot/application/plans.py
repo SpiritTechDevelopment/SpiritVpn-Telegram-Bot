@@ -78,7 +78,7 @@ def build_plan_catalog(
                 title="3 месяца",
                 fleet_id=friends_fleet_id,  # TODO: реальный fleet_id платных тарифов
                 duration_days=90,
-                quota_bytes=100 * 1024**3,
+                quota_bytes=100 * 1024**3 * 3,
                 price=Money(30000, "RUB"),
                 purchasable=True,
                 display_as_unlimited=True,

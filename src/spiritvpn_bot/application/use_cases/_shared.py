@@ -18,6 +18,8 @@ async def assign_command_number_and_mark_paid(
 ) -> int:
     """Назначает command_number и переводит заказ в PAID.
 
+    Новый срок продлевает уже оставшийся, а не переустанавливает его
+
     Args:
         uow: открытая транзакция UnitOfWork.
         clock: источник текущего времени.
@@ -32,7 +34,14 @@ async def assign_command_number_and_mark_paid(
     """
     last_issued = await uow.command_sequence.last_issued_for_update(order.customer_id)
     command_number = next_command_number(last_issued)
-    expires_at = clock.now() + (duration or timedelta(days=order.plan.duration_days))
+
+    now = clock.now()
+    previous_order = await uow.orders.get_latest_for_customer(order.customer_id)
+    base_time = now
+    if previous_order is not None and previous_order.expires_at is not None:
+        base_time = max(now, previous_order.expires_at)
+
+    expires_at = base_time + (duration or timedelta(days=order.plan.duration_days))
     order.mark_paid(
         command_number=command_number,
         expires_at=expires_at,

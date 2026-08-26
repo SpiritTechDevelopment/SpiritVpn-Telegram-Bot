@@ -94,6 +94,45 @@ async def test_second_purchase_by_same_customer_gets_next_command_number(
     assert result.command_number == 2
 
 
+async def test_second_purchase_extends_from_existing_expiry_not_from_now(
+    uow: FakeUnitOfWork,
+) -> None:
+    clock = FakeClock(NOW)
+    first = awaiting_payment_order("order-1", "tg:1")
+    await uow.orders.add(first)
+    await ConfirmPaymentUseCase(uow, clock, FakeEventPublisher()).execute(
+        order_id="order-1", payment_reference="stars:1"
+    )
+
+    second = awaiting_payment_order("order-2", "tg:1")
+    await uow.orders.add(second)
+    result = await ConfirmPaymentUseCase(uow, clock, FakeEventPublisher()).execute(
+        order_id="order-2", payment_reference="stars:2"
+    )
+
+    assert result.expires_at == NOW + timedelta(days=60)
+
+
+async def test_purchase_after_previous_expiry_starts_fresh_from_now(
+    uow: FakeUnitOfWork,
+) -> None:
+    clock = FakeClock(NOW)
+    first = awaiting_payment_order("order-1", "tg:1")
+    await uow.orders.add(first)
+    await ConfirmPaymentUseCase(uow, clock, FakeEventPublisher()).execute(
+        order_id="order-1", payment_reference="stars:1"
+    )
+
+    clock.advance(timedelta(days=40))  # 10 дней после истечения первого заказа
+    second = awaiting_payment_order("order-2", "tg:1")
+    await uow.orders.add(second)
+    result = await ConfirmPaymentUseCase(uow, clock, FakeEventPublisher()).execute(
+        order_id="order-2", payment_reference="stars:2"
+    )
+
+    assert result.expires_at == NOW + timedelta(days=70)
+
+
 async def test_different_customers_get_independent_command_sequences(
     uow: FakeUnitOfWork,
 ) -> None:

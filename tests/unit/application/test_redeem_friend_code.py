@@ -94,6 +94,24 @@ async def test_repeated_use_by_the_same_customer_renews() -> None:
     assert first is not None
     assert second is not None
     assert second.command_number == 2
+    assert second.expires_at == NOW + timedelta(days=60)
+
+
+async def test_redeem_after_previous_expiry_starts_fresh_from_now() -> None:
+    uow = make_uow()
+    clock = FakeClock(NOW)
+    use_case = RedeemFriendCodeUseCase(
+        uow, FakeIdGenerator(), clock, FakeEventPublisher(), PLANS, SHARED_CODE
+    )
+
+    first = await use_case.execute(customer_id="tg:1", submitted_code=SHARED_CODE)
+    assert first is not None
+
+    clock.advance(timedelta(days=40))  # 10 дней после истечения первой выдачи
+    second = await use_case.execute(customer_id="tg:1", submitted_code=SHARED_CODE)
+
+    assert second is not None
+    assert second.expires_at == NOW + timedelta(days=70)
 
 
 async def test_test_duration_code_grants_a_short_lived_order() -> None:

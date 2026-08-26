@@ -46,7 +46,8 @@ async def test_returns_days_left_from_the_latest_order() -> None:
     await uow.orders.add(paid_order("order-1", 1, NOW + timedelta(days=18, hours=2)))
     use_case = GetSubscriptionStatusUseCase(uow, FakeClock(NOW))
 
-    days_left = await use_case.execute(customer_id="tg:1")
+    status = await use_case.execute(customer_id="tg:1")
+    days_left = status.days_left if status is not None else None
 
     assert days_left == 18
 
@@ -57,7 +58,8 @@ async def test_uses_the_order_with_the_highest_command_number() -> None:
     await uow.orders.add(paid_order("order-2", 2, NOW + timedelta(days=40)))
     use_case = GetSubscriptionStatusUseCase(uow, FakeClock(NOW))
 
-    days_left = await use_case.execute(customer_id="tg:1")
+    status = await use_case.execute(customer_id="tg:1")
+    days_left = status.days_left if status is not None else None
 
     assert days_left == 40
 
@@ -76,6 +78,19 @@ async def test_expired_order_returns_zero_not_negative() -> None:
     await uow.orders.add(paid_order("order-1", 1, NOW - timedelta(days=5)))
     use_case = GetSubscriptionStatusUseCase(uow, FakeClock(NOW))
 
-    days_left = await use_case.execute(customer_id="tg:1")
+    status = await use_case.execute(customer_id="tg:1")
+    days_left = status.days_left if status is not None else None
 
     assert days_left == 0
+
+
+async def test_exposes_the_exact_expiry_moment() -> None:
+    uow = FakeUnitOfWork(InMemoryOrderRepository(), InMemoryCommandSequenceRepository())
+    expires_at = NOW + timedelta(days=18, hours=2)
+    await uow.orders.add(paid_order("order-1", 1, expires_at))
+    use_case = GetSubscriptionStatusUseCase(uow, FakeClock(NOW))
+
+    status = await use_case.execute(customer_id="tg:1")
+
+    assert status is not None
+    assert status.expires_at == expires_at

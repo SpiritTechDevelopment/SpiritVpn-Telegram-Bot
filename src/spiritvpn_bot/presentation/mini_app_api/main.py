@@ -81,14 +81,20 @@ def create_app(
     async def health() -> dict[str, str]:
         return {"status": "ok"}
 
-    @app.get("/s/{token}", response_class=PlainTextResponse)
-    async def subscription(token: str) -> str:
+    @app.get("/s/{token}")
+    async def subscription(token: str) -> PlainTextResponse:
         customer_id = token_signer.verify(token)
         if customer_id is None:
             logger.warning("subscription_token_rejected")
             raise HTTPException(status_code=404)
         links = await get_my_links.execute(customer_id=customer_id)
-        return build_subscription_content(links).decode("ascii")
+        body = build_subscription_content(links).decode("ascii")
+        headers = {"Content-Disposition": 'attachment; filename="SpiritVPN"'}
+        status = await get_subscription_status().execute(customer_id=customer_id)
+        if status is not None:
+            expire = int(status.expires_at.timestamp())
+            headers["Subscription-Userinfo"] = f"upload=0; download=0; total=0; expire={expire}"
+        return PlainTextResponse(content=body, headers=headers)
 
     @app.get("/api/me/links", response_model=list[LinkStatusOut])
     async def my_links(x_telegram_init_data: str = Header(...)) -> list[LinkStatusOut]:
@@ -108,8 +114,8 @@ def create_app(
         x_telegram_init_data: str = Header(...),
     ) -> SubscriptionStatusOut:
         customer_id = _authenticate(x_telegram_init_data)
-        days_left = await get_subscription_status().execute(customer_id=customer_id)
-        return SubscriptionStatusOut(days_left=days_left)
+        status = await get_subscription_status().execute(customer_id=customer_id)
+        return SubscriptionStatusOut(days_left=status.days_left if status is not None else None)
 
     @app.get("/api/me/subscription-url", response_model=SubscriptionUrlOut)
     async def my_subscription_url(x_telegram_init_data: str = Header(...)) -> SubscriptionUrlOut:

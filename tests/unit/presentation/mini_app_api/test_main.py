@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import base64
 import time
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from fastapi.testclient import TestClient
 
@@ -13,6 +13,9 @@ from spiritvpn_bot.application.use_cases.get_my_links import GetMyLinksUseCase
 from spiritvpn_bot.application.use_cases.get_subscription_status import (
     GetSubscriptionStatusUseCase,
 )
+from spiritvpn_bot.domain.entities.money import Money
+from spiritvpn_bot.domain.entities.order import Order, OrderStatus
+from spiritvpn_bot.domain.entities.plan import Plan
 from spiritvpn_bot.presentation.mini_app_api.main import create_app
 from tests.unit.application.fakes import (
     FakeClock,
@@ -28,6 +31,29 @@ SIGNING_KEY = b"test-signing-key"
 NOW = datetime(2026, 1, 1, tzinfo=UTC)
 
 PLANS = build_plan_catalog(friends_fleet_id=1, friends_quota_bytes=10, friends_duration_days=30)
+
+_PLAN = Plan(
+    id="nl-30d",
+    title="Netherlands, 30 days",
+    fleet_id=1,
+    duration_days=30,
+    quota_bytes=10,
+    price=Money(0, "RUB"),
+)
+
+
+def _paid_order(order_id: str, command_number: int, expires_at: datetime) -> Order:
+    order = Order(
+        id=order_id,
+        customer_id="tg:42",
+        plan=_PLAN,
+        price=_PLAN.price,
+        status=OrderStatus.CREATED,
+        created_at=NOW,
+    )
+    order.mark_awaiting_payment()
+    order.mark_paid(command_number=command_number, expires_at=expires_at, payment_reference="x")
+    return order
 
 
 def make_client(gateway: FakeVPNAccessGateway) -> TestClient:
@@ -64,6 +90,45 @@ def test_subscription_endpoint_returns_base64_of_ready_links() -> None:
 
     assert response.status_code == 200
     assert base64.b64decode(response.text) == b"vless://x@nl.example.com:443#NL"
+
+
+async def test_subscription_endpoint_sets_name_and_userinfo_headers() -> None:
+    gateway = FakeVPNAccessGateway()
+    gateway.links_by_customer["tg:42"] = [
+        AccessLink(kind="BRIDGE", state="READY", uri="vless://x@nl.example.com:443#NL"),
+    ]
+    uow = FakeUnitOfWork(InMemoryOrderRepository(), InMemoryCommandSequenceRepository())
+    expires_at = NOW + timedelta(days=18, hours=2)
+    await uow.orders.add(_paid_order("order-1", 1, expires_at))
+    signer = SubscriptionTokenSigner(SIGNING_KEY)
+    app = create_app(
+        get_my_links=GetMyLinksUseCase(gateway),
+        get_subscription_status=lambda: GetSubscriptionStatusUseCase(uow, FakeClock(NOW)),
+        token_signer=signer,
+        bot_token=BOT_TOKEN,
+        subscription_base_url=SUBSCRIPTION_BASE_URL,
+        plans=PLANS,
+    )
+    client = TestClient(app)
+
+    token = signer.sign("tg:42")
+    response = client.get(f"/s/{token}")
+
+    assert response.headers["content-disposition"] == 'attachment; filename="SpiritVPN"'
+    assert response.headers["subscription-userinfo"] == (
+        f"upload=0; download=0; total=0; expire={int(expires_at.timestamp())}"
+    )
+
+
+def test_subscription_endpoint_omits_userinfo_without_a_subscription() -> None:
+    gateway = FakeVPNAccessGateway()
+    signer = SubscriptionTokenSigner(SIGNING_KEY)
+    client = make_client(gateway)
+
+    token = signer.sign("tg:no-orders")
+    response = client.get(f"/s/{token}")
+
+    assert "subscription-userinfo" not in response.headers
 
 
 def test_subscription_endpoint_rejects_forged_token() -> None:

@@ -125,9 +125,9 @@ async def handle_status(
     assert message.from_user is not None
     customer_id = f"tg:{message.from_user.id}"
 
-    days_left = await get_subscription_status_factory().execute(customer_id=customer_id)
+    status = await get_subscription_status_factory().execute(customer_id=customer_id)
 
-    if days_left is None:
+    if status is None:
         await answer_with_mini_app(message, texts.STATUS_NO_SUBSCRIPTION, mini_app_url)
         return
 
@@ -140,9 +140,11 @@ async def handle_status(
         else texts.STATUS_SERVERS_NONE
     )
 
-    if days_left > 0:
+    if status.days_left > 0:
         text = texts.STATUS_ACTIVE_TEMPLATE.format(
-            days=days_left, days_word=texts.days_word(days_left), servers_line=servers_line
+            days=status.days_left,
+            days_word=texts.days_word(status.days_left),
+            servers_line=servers_line,
         )
     else:
         text = texts.STATUS_EXPIRED_TEMPLATE.format(servers_line=servers_line)
@@ -165,15 +167,15 @@ async def handle_plans(
     """
     assert message.from_user is not None
     customer_id = f"tg:{message.from_user.id}"
-    days_left = await get_subscription_status_factory().execute(customer_id=customer_id)
+    status = await get_subscription_status_factory().execute(customer_id=customer_id)
 
     lines = [texts.PLANS_HEADER, ""]
-    if days_left is None:
+    if status is None:
         lines.append(texts.PLANS_STATUS_NONE)
-    elif days_left > 0:
+    elif status.days_left > 0:
         lines.append(
             texts.PLANS_STATUS_ACTIVE_TEMPLATE.format(
-                days=days_left, days_word=texts.days_word(days_left)
+                days=status.days_left, days_word=texts.days_word(status.days_left)
             )
         )
     else:

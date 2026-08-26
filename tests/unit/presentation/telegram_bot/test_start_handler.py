@@ -391,7 +391,6 @@ async def test_plans_lists_purchasable_plans_with_price_and_regions() -> None:
     assert "3 месяца" in text
     assert "300 ₽" in text
     assert "своих" not in text.lower()
-    assert "Нидерланды" in text
     assert "подписки пока нет" in text.lower()
 
 

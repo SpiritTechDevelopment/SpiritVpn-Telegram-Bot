@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import json
 import time
 from datetime import UTC, datetime, timedelta
 
@@ -27,6 +28,7 @@ from tests.unit.application.fakes import (
 from tests.unit.presentation.mini_app_api.test_auth import BOT_TOKEN, sign_init_data, valid_fields
 
 SUBSCRIPTION_BASE_URL = "https://sub.example.test"
+MAIN_DEEP_LINK = "https://t.me/spiritvpn_test_bot"
 SIGNING_KEY = b"test-signing-key"
 NOW = datetime(2026, 1, 1, tzinfo=UTC)
 
@@ -65,6 +67,8 @@ def make_client(gateway: FakeVPNAccessGateway) -> TestClient:
         bot_token=BOT_TOKEN,
         subscription_base_url=SUBSCRIPTION_BASE_URL,
         plans=PLANS,
+        main_deep_link=MAIN_DEEP_LINK,
+        clock=FakeClock(NOW),
     )
     return TestClient(app)
 
@@ -108,6 +112,8 @@ async def test_subscription_endpoint_sets_name_and_userinfo_headers() -> None:
         bot_token=BOT_TOKEN,
         subscription_base_url=SUBSCRIPTION_BASE_URL,
         plans=PLANS,
+        main_deep_link=MAIN_DEEP_LINK,
+        clock=FakeClock(NOW),
     )
     client = TestClient(app)
 
@@ -137,6 +143,119 @@ def test_subscription_endpoint_rejects_forged_token() -> None:
     response = client.get("/s/not-a-real-token")
 
     assert response.status_code == 404
+
+
+def _extract_state(html: str) -> dict:
+    marker = '<script type="application/json" id="state">'
+    start = html.index(marker) + len(marker)
+    end = html.index("</script>", start)
+    return json.loads(html[start:end])
+
+
+def test_subscription_endpoint_returns_html_for_browsers() -> None:
+    gateway = FakeVPNAccessGateway()
+    signer = SubscriptionTokenSigner(SIGNING_KEY)
+    client = make_client(gateway)
+
+    token = signer.sign("tg:42")
+    response = client.get(f"/s/{token}", headers={"Accept": "text/html,*/*"})
+
+    assert response.status_code == 200
+    assert "text/html" in response.headers["content-type"]
+    assert "SpiritVPN" in response.text
+
+
+async def test_subscription_endpoint_html_reflects_active_status() -> None:
+    gateway = FakeVPNAccessGateway()
+    gateway.links_by_customer["tg:42"] = [
+        AccessLink(kind="BRIDGE", state="READY", uri="vless://x@nl.example.com:443#NL%20Amsterdam"),
+    ]
+    uow = FakeUnitOfWork(InMemoryOrderRepository(), InMemoryCommandSequenceRepository())
+    expires_at = NOW + timedelta(days=18)
+    await uow.orders.add(_paid_order("order-1", 1, expires_at))
+    signer = SubscriptionTokenSigner(SIGNING_KEY)
+    app = create_app(
+        get_my_links=GetMyLinksUseCase(gateway),
+        get_subscription_status=lambda: GetSubscriptionStatusUseCase(uow, FakeClock(NOW)),
+        token_signer=signer,
+        bot_token=BOT_TOKEN,
+        subscription_base_url=SUBSCRIPTION_BASE_URL,
+        plans=PLANS,
+        main_deep_link=MAIN_DEEP_LINK,
+        clock=FakeClock(NOW),
+    )
+    client = TestClient(app)
+
+    token = signer.sign("tg:42")
+    response = client.get(f"/s/{token}", headers={"Accept": "text/html"})
+
+    state = _extract_state(response.text)
+    assert state["status"] == "active"
+    assert state["expiresAtLabel"] == "19 января 2026"
+    assert state["botDeepLink"] == MAIN_DEEP_LINK
+    assert state["subscriptionUrl"] == f"{SUBSCRIPTION_BASE_URL}/s/{token}"
+    assert state["servers"] == [
+        {"name": "NL Amsterdam", "uri": "vless://x@nl.example.com:443#NL%20Amsterdam"}
+    ]
+
+
+async def test_subscription_endpoint_html_reflects_expired_status() -> None:
+    gateway = FakeVPNAccessGateway()
+    uow = FakeUnitOfWork(InMemoryOrderRepository(), InMemoryCommandSequenceRepository())
+    await uow.orders.add(_paid_order("order-1", 1, NOW - timedelta(days=5)))
+    signer = SubscriptionTokenSigner(SIGNING_KEY)
+    app = create_app(
+        get_my_links=GetMyLinksUseCase(gateway),
+        get_subscription_status=lambda: GetSubscriptionStatusUseCase(uow, FakeClock(NOW)),
+        token_signer=signer,
+        bot_token=BOT_TOKEN,
+        subscription_base_url=SUBSCRIPTION_BASE_URL,
+        plans=PLANS,
+        main_deep_link=MAIN_DEEP_LINK,
+        clock=FakeClock(NOW),
+    )
+    client = TestClient(app)
+
+    token = signer.sign("tg:42")
+    response = client.get(f"/s/{token}", headers={"Accept": "text/html"})
+
+    state = _extract_state(response.text)
+    assert state["status"] == "expired"
+    assert state["expiresAtLabel"] is None
+
+
+def test_subscription_endpoint_html_reflects_no_subscription() -> None:
+    client = make_client(FakeVPNAccessGateway())
+    signer = SubscriptionTokenSigner(SIGNING_KEY)
+
+    token = signer.sign("tg:no-orders")
+    response = client.get(f"/s/{token}", headers={"Accept": "text/html"})
+
+    state = _extract_state(response.text)
+    assert state["status"] == "none"
+
+
+def test_subscription_endpoint_without_html_accept_still_returns_raw_body() -> None:
+    gateway = FakeVPNAccessGateway()
+    gateway.links_by_customer["tg:42"] = [
+        AccessLink(kind="BRIDGE", state="READY", uri="vless://x@nl.example.com:443#NL"),
+    ]
+    signer = SubscriptionTokenSigner(SIGNING_KEY)
+    client = make_client(gateway)
+
+    token = signer.sign("tg:42")
+    response = client.get(f"/s/{token}", headers={"Accept": "*/*"})
+
+    assert base64.b64decode(response.text) == b"vless://x@nl.example.com:443#NL"
+
+
+def test_client_icons_are_served_as_static_files() -> None:
+    client = make_client(FakeVPNAccessGateway())
+
+    response = client.get("/static/clients/hiddify.png")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/png"
 
 
 def test_my_links_requires_init_data_header() -> None:
@@ -298,6 +417,8 @@ def test_plans_endpoint_lists_purchasable_plans() -> None:
         bot_token=BOT_TOKEN,
         subscription_base_url=SUBSCRIPTION_BASE_URL,
         plans=catalog,
+        main_deep_link=MAIN_DEEP_LINK,
+        clock=FakeClock(NOW),
     )
     client = TestClient(app)
 

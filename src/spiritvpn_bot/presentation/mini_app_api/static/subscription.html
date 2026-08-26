@@ -1,0 +1,721 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SpiritVPN — подписка</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap"
+    />
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0d0d0d;
+        --card-bg: #161616;
+        --text: #ffffff;
+        --hint: #9c9c9c;
+        --accent: #e8935a;
+        --border: rgba(255, 255, 255, 0.09);
+        --code-bg: rgba(255, 255, 255, 0.05);
+        --card-shadow: 0 24px 56px -20px rgba(0, 0, 0, 0.55);
+        --button-shadow: 0 8px 20px -10px rgba(232, 147, 90, 0.3);
+        --buy-shadow: 0 8px 20px -10px rgba(232, 147, 90, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      }
+      * { box-sizing: border-box; }
+      a { color: inherit; text-decoration: none; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        position: relative;
+        overflow-x: hidden;
+      }
+
+      .glow {
+        position: absolute;
+        top: -220px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 620px;
+        height: 480px;
+        background: radial-gradient(closest-side, rgba(232, 147, 90, 0.16), rgba(232, 147, 90, 0) 70%);
+        pointer-events: none;
+      }
+      .grid-texture {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 620px;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+        background-size: 28px 28px;
+        -webkit-mask-image: linear-gradient(to bottom, black, transparent);
+        mask-image: linear-gradient(to bottom, black, transparent);
+        pointer-events: none;
+      }
+
+      .shell {
+        position: relative;
+        width: 100%;
+        max-width: 480px;
+        margin: 0 auto;
+        padding: 3rem 1.25rem 4rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+
+      .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem; }
+      .brand { display: flex; align-items: center; gap: 12px; }
+      .brand-name { font-size: 1.2rem; font-weight: 800; letter-spacing: -0.02em; }
+
+      @keyframes ring-spin { to { transform: rotate(360deg); } }
+      @keyframes ring-spin-reverse { to { transform: rotate(-360deg); } }
+      .ring-outer { transform-origin: 60px 60px; animation: ring-spin 9s linear infinite; }
+      .ring-inner { transform-origin: 60px 60px; animation: ring-spin-reverse 6.5s linear infinite; }
+      @media (prefers-reduced-motion: reduce) {
+        .ring-outer, .ring-inner { animation: none; }
+      }
+
+      .tg-icon-btn {
+        width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        backdrop-filter: blur(6px);
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: var(--buy-shadow);
+        transition: transform 0.15s, background 0.15s;
+        cursor: pointer;
+      }
+      .tg-icon-btn:active { transform: scale(0.93); background: rgba(255, 255, 255, 0.16); }
+      .tg-icon-btn svg { stroke: var(--accent); }
+
+      .kicker { display: flex; align-items: center; gap: 0.5rem; margin: 0 0 0.6rem; }
+      .kicker::before { content: ""; width: 10px; height: 2px; border-radius: 1px; background: var(--accent); flex-shrink: 0; }
+      .kicker span { font-size: 0.69rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--hint); }
+      .page-heading { font-weight: 800; font-size: 1.7rem; line-height: 1.12; letter-spacing: -0.02em; margin: 0; }
+
+      .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 20px; padding: 1.1rem; box-shadow: var(--card-shadow); }
+      .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.9rem; }
+      .card-header .kicker { margin: 0; }
+
+      .status-chip {
+        font-size: 0.68rem; font-weight: 600;
+        padding: 0.28rem 0.65rem; border-radius: 999px;
+        display: flex; align-items: center; gap: 5px;
+      }
+      .status-chip.active { color: #6fd196; background: rgba(47, 156, 95, 0.14); border: 1px solid rgba(47, 156, 95, 0.3); }
+      .status-chip.expired { color: #e29383; background: rgba(184, 80, 63, 0.14); border: 1px solid rgba(184, 80, 63, 0.3); }
+      .status-chip.none { color: var(--hint); background: var(--code-bg); border: 1px solid var(--border); }
+      .status-chip .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+      .status-rows { display: flex; flex-direction: column; }
+      .status-row-item { display: flex; align-items: center; gap: 12px; padding: 0.7rem 0; }
+      .status-row-item + .status-row-item { border-top: 1px solid var(--border); }
+      .status-row-icon {
+        width: 36px; height: 36px; border-radius: 11px; flex-shrink: 0;
+        background: var(--code-bg);
+        display: flex; align-items: center; justify-content: center;
+      }
+      .status-row-icon svg { stroke: var(--hint); }
+      .status-row-label { font-size: 0.78rem; color: var(--hint); }
+      .status-row-value { font-size: 0.94rem; font-weight: 700; margin-top: 1px; }
+      .status-row-value.mono { font-family: "JetBrains Mono", ui-monospace, monospace; }
+
+      .status-empty {
+        display: flex; flex-direction: column; align-items: center; text-align: center;
+        gap: 0.75rem; padding: 1.1rem 0.5rem 0.4rem;
+      }
+      .status-empty-title { font-size: 0.98rem; font-weight: 700; }
+      .status-empty-subtitle { font-size: 0.82rem; color: var(--hint); max-width: 280px; margin-top: 0.2rem; }
+
+      .os-row { display: flex; gap: 7px; margin-bottom: 1rem; flex-wrap: wrap; }
+      .os-pill {
+        padding: 0.42rem 0.85rem; border-radius: 999px; font-size: 0.78rem; font-weight: 600;
+        background: var(--code-bg); border: 1px solid var(--border);
+        color: var(--hint); cursor: pointer;
+        transition: transform 0.1s, background 0.15s, color 0.15s, border-color 0.15s;
+      }
+      .os-pill:active { transform: scale(0.95); }
+      .os-pill.active { background: rgba(232, 147, 90, 0.14); border-color: rgba(232, 147, 90, 0.45); color: var(--accent); }
+
+      .client-list { display: flex; flex-direction: column; }
+      .client-row { display: flex; align-items: center; gap: 12px; padding: 0.65rem 0; }
+      .client-row + .client-row { border-top: 1px solid var(--border); }
+      .client-icon {
+        width: 38px; height: 38px; border-radius: 11px; flex-shrink: 0;
+        background: rgba(255, 255, 255, 0.06); border: 1px solid var(--border);
+        display: flex; align-items: center; justify-content: center;
+        overflow: hidden;
+      }
+      .client-icon img { width: 100%; height: 100%; object-fit: contain; display: block; }
+      .client-icon.mono {
+        background: rgba(232, 147, 90, 0.12); border: 1px solid rgba(232, 147, 90, 0.28);
+        font-size: 0.8rem; font-weight: 800; color: var(--accent);
+      }
+      .client-text { min-width: 0; }
+      .client-name { font-size: 0.9rem; font-weight: 700; }
+      .client-note { font-size: 0.76rem; color: var(--hint); margin-top: 1px; }
+      .client-row-actions { margin-left: auto; flex-shrink: 0; display: flex; align-items: center; gap: 6px; }
+      .client-add-btn {
+        font-size: 0.72rem; font-weight: 700;
+        padding: 0.4rem 0.7rem; border-radius: 9px;
+        background: rgba(232, 147, 90, 0.14); border: 1px solid rgba(232, 147, 90, 0.4);
+        color: var(--accent); white-space: nowrap;
+        transition: transform 0.1s, background 0.15s;
+      }
+      .client-add-btn:active { transform: scale(0.95); background: rgba(232, 147, 90, 0.24); }
+      .client-link {
+        flex-shrink: 0;
+        width: 32px; height: 32px; border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        background: var(--code-bg); border: 1px solid var(--border);
+      }
+      .client-link svg { stroke: var(--hint); }
+      .client-hint { font-size: 0.74rem; color: var(--hint); line-height: 1.5; margin: 0.7rem 0 0; }
+
+      button.btn-primary { width: 100%; font-family: inherit; }
+      .btn-primary {
+        height: 48px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.06);
+        backdrop-filter: blur(6px);
+        color: var(--text);
+        font-size: 0.88rem; font-weight: 600;
+        display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+        box-shadow: var(--button-shadow);
+        cursor: pointer;
+        transition: transform 0.15s, background 0.25s, border-color 0.25s, color 0.25s, box-shadow 0.25s;
+      }
+      .btn-primary:active { transform: scale(0.98); background: rgba(255, 255, 255, 0.14); }
+      .btn-primary svg { stroke: var(--accent); }
+
+      .btn-cta { background: rgba(232, 147, 90, 0.14); border-color: rgba(232, 147, 90, 0.45); }
+      .btn-cta:hover {
+        background: rgba(232, 147, 90, 0.2);
+        border-color: rgba(232, 147, 90, 0.65);
+        box-shadow: 0 10px 26px -10px rgba(232, 147, 90, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+      }
+      .btn-cta:active {
+        background: rgba(232, 147, 90, 0.3);
+        box-shadow: 0 6px 16px -8px rgba(232, 147, 90, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      }
+
+      .btn-shine { position: relative; overflow: hidden; }
+      .btn-shine::after {
+        content: "";
+        position: absolute;
+        top: -50%; left: -60%;
+        width: 35%; height: 200%;
+        background: linear-gradient(120deg, transparent 0%, rgba(255, 255, 255, 0.55) 50%, transparent 100%);
+        transform: skewX(-20deg);
+        transition: left 0.6s ease;
+        pointer-events: none;
+      }
+      .btn-shine:hover::after { left: 130%; }
+
+      .btn-primary.copied {
+        background: rgba(250, 244, 237, 0.9);
+        border-color: rgba(255, 255, 255, 0.35);
+        color: #211c17;
+      }
+      .btn-primary.copied svg { stroke: #211c17; }
+
+      .actions { display: flex; flex-direction: column; gap: 0.65rem; }
+      .footnote { font-size: 0.76rem; color: #5f5f5f; text-align: center; margin-top: 0.2rem; }
+
+      .fallback-toggle {
+        text-align: center; font-size: 0.8rem; font-weight: 600;
+        color: var(--hint); cursor: pointer; padding: 0.2rem; background: none; border: none; font-family: inherit; width: 100%;
+      }
+      .fallback-toggle span { color: var(--accent); }
+      .fallback-toggle:active { opacity: 0.7; }
+
+      .fallback-hint { font-size: 0.78rem; color: var(--hint); line-height: 1.5; margin: 0 0 0.9rem; }
+
+      .server-row { display: flex; align-items: center; gap: 10px; padding: 0.6rem 0; }
+      .server-row + .server-row { border-top: 1px solid var(--border); }
+      .dot { width: 7px; height: 7px; border-radius: 50%; background: #2f9c5f; flex-shrink: 0; box-shadow: 0 0 8px #2f9c5f66; }
+      .flag { width: 20px; height: 14px; border-radius: 3px; flex-shrink: 0; border: 1px solid rgba(255, 255, 255, 0.18); }
+      .server-info { flex-grow: 1; min-width: 0; }
+      .server-name { font-size: 0.86rem; font-weight: 700; }
+      .server-uri {
+        font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 0.7rem; color: var(--hint);
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        margin-top: 1px;
+      }
+      .server-actions { display: flex; gap: 6px; flex-shrink: 0; }
+      .server-btn {
+        width: 30px; height: 30px; border-radius: 9px;
+        background: var(--code-bg); border: 1px solid var(--border);
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer;
+      }
+      .server-btn svg { stroke: var(--hint); }
+      .server-btn.copied { background: rgba(47, 156, 95, 0.16); border-color: rgba(47, 156, 95, 0.4); }
+      .server-btn.copied svg { stroke: #6fd196; }
+
+      .faq-item { border-top: 1px solid var(--border); }
+      .faq-item:first-child { border-top: none; }
+      .faq-q {
+        padding: 0.85rem 0; display: flex; align-items: center; justify-content: space-between;
+        cursor: pointer; gap: 14px; background: none; border: none; width: 100%; font-family: inherit; color: inherit; text-align: left;
+      }
+      .faq-q-text { font-size: 0.86rem; font-weight: 600; }
+      .faq-chevron { flex-shrink: 0; transition: transform 0.15s ease; stroke: var(--hint); }
+      .faq-item.open .faq-chevron { transform: rotate(180deg); stroke: var(--accent); }
+      .faq-a { padding: 0 0 1rem; font-size: 0.82rem; line-height: 1.55; color: var(--hint); display: none; }
+      .faq-item.open .faq-a { display: block; }
+
+      .empty { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <div class="glow"></div>
+    <div class="grid-texture"></div>
+
+    <div class="shell">
+      <div class="header">
+        <div class="brand">
+          <svg viewBox="0 0 120 120" width="46" height="46">
+            <circle class="ring-outer" cx="60" cy="60" r="46" fill="none" stroke="#ffffff" stroke-width="7" stroke-dasharray="200 89" stroke-linecap="round"></circle>
+            <circle class="ring-inner" cx="60" cy="60" r="30" fill="none" stroke="#e8935a" stroke-width="7" stroke-dasharray="120 69" stroke-linecap="round"></circle>
+            <circle cx="60" cy="60" r="10" fill="#ffffff"></circle>
+          </svg>
+          <div class="brand-name">SpiritVPN</div>
+        </div>
+        <a id="tg-link" class="tg-icon-btn" href="#" title="Открыть бота">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 2 11 13"></path>
+            <path d="M22 2 15 22 11 13 2 9 22 2Z"></path>
+          </svg>
+        </a>
+      </div>
+
+      <div class="hero">
+        <p class="kicker"><span>Подписка</span></p>
+        <h1 class="page-heading">Ваш доступ к SpiritVPN</h1>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <p class="kicker" style="margin:0;"><span>Статус</span></p>
+          <span id="status-chip" class="status-chip"><span class="dot" style="box-shadow:none;"></span><span id="status-chip-label"></span></span>
+        </div>
+
+        <div id="status-rows" class="status-rows empty">
+          <div class="status-row-item">
+            <div class="status-row-icon">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                <path d="M16 2v4M8 2v4M3 10h18"></path>
+              </svg>
+            </div>
+            <div>
+              <div class="status-row-label">Истекает</div>
+              <div id="expires-at-value" class="status-row-value"></div>
+            </div>
+          </div>
+          <div class="status-row-item">
+            <div class="status-row-icon">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 3 21 7l-4 4"></path>
+                <path d="M21 7H9a4 4 0 0 0-4 4v1"></path>
+                <path d="M7 21 3 17l4-4"></path>
+                <path d="M3 17h12a4 4 0 0 0 4-4v-1"></path>
+              </svg>
+            </div>
+            <div>
+              <div class="status-row-label">Трафик</div>
+              <div class="status-row-value mono">∞ Безлимит</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="status-empty" class="status-empty empty">
+          <svg viewBox="0 0 120 120" width="52" height="52">
+            <circle class="ring-outer" cx="60" cy="60" r="46" fill="none" stroke="#ffffff" stroke-width="7" stroke-dasharray="200 89" stroke-linecap="round"></circle>
+            <circle class="ring-inner" cx="60" cy="60" r="30" fill="none" stroke="#e8935a" stroke-width="7" stroke-dasharray="120 69" stroke-linecap="round"></circle>
+            <circle cx="60" cy="60" r="10" fill="#ffffff"></circle>
+          </svg>
+          <div>
+            <div id="status-empty-title" class="status-empty-title"></div>
+            <div id="status-empty-subtitle" class="status-empty-subtitle"></div>
+          </div>
+          <a id="status-empty-cta" class="btn-primary btn-cta btn-shine" href="#" style="width:100%; margin-top:0.4rem;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 2 11 13"></path>
+              <path d="M22 2 15 22 11 13 2 9 22 2Z"></path>
+            </svg>
+            <span id="status-empty-cta-label"></span>
+          </a>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="kicker"><span>Установка</span></p>
+        <div id="os-row" class="os-row"></div>
+        <div id="client-list" class="client-list"></div>
+        <p class="client-hint">Кнопка «Добавить» доступна там, где клиент поддерживает автоматическое добавление подписки по ссылке. Для остальных — скопируйте ссылку ниже и вставьте её внутри приложения вручную.</p>
+      </div>
+
+      <div id="active-actions" class="empty">
+        <div class="actions">
+          <a id="primary-add-btn" class="btn-primary btn-cta btn-shine" href="#">
+            Добавить подписку в приложение
+          </a>
+          <button id="copy-btn" class="btn-primary" type="button">
+            <svg class="icon-link" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+            </svg>
+            <span id="copy-btn-label">Скопировать ссылку подписки</span>
+          </button>
+          <div class="footnote">Не добавилось автоматически? Скопируйте ссылку и вставьте вручную — или откройте серверы по отдельности ниже</div>
+        </div>
+
+        <button id="fallback-toggle" class="fallback-toggle" type="button">
+          Не добавилось? <span>Показать серверы по отдельности</span>
+        </button>
+
+        <div id="fallback-panel" class="card empty" style="margin-top: 1rem;">
+          <p class="kicker"><span>Серверы по отдельности</span></p>
+          <p class="fallback-hint">Если приложение не приняло ссылку подписки целиком — откройте нужный сервер напрямую или скопируйте его отдельно.</p>
+          <div id="server-list"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="kicker"><span>Как пользоваться</span></p>
+        <div id="faq-list"></div>
+      </div>
+    </div>
+
+    <script type="application/json" id="state">__SPIRITVPN_STATE__</script>
+    <script>
+      const state = JSON.parse(document.getElementById("state").textContent);
+
+      function escapeHtml(value) {
+        const div = document.createElement("div");
+        div.textContent = value;
+        return div.innerHTML;
+      }
+
+      // --- шапка / глобальные ссылки на бота ---
+      document.getElementById("tg-link").href = state.botDeepLink;
+
+      // --- статус подписки ---
+      const chip = document.getElementById("status-chip");
+      const chipLabel = document.getElementById("status-chip-label");
+      const statusRows = document.getElementById("status-rows");
+      const statusEmpty = document.getElementById("status-empty");
+      const activeActions = document.getElementById("active-actions");
+
+      if (state.status === "active") {
+        chip.classList.add("active");
+        chipLabel.textContent = "Активна";
+        statusRows.classList.remove("empty");
+        document.getElementById("expires-at-value").textContent = state.expiresAtLabel;
+        activeActions.classList.remove("empty");
+      } else {
+        const isExpired = state.status === "expired";
+        chip.classList.add(isExpired ? "expired" : "none");
+        chipLabel.textContent = isExpired ? "Истекла" : "Нет подписки";
+        statusEmpty.classList.remove("empty");
+        document.getElementById("status-empty-title").textContent = isExpired
+          ? "Подписка закончилась"
+          : "Активной подписки нет";
+        document.getElementById("status-empty-subtitle").textContent = isExpired
+          ? "Продлите тариф в боте, чтобы восстановить доступ"
+          : "Оформите тариф в боте, чтобы получить доступ к серверам";
+        const cta = document.getElementById("status-empty-cta");
+        cta.href = state.botDeepLink;
+        document.getElementById("status-empty-cta-label").textContent = isExpired ? "Продлить" : "Оформить";
+      }
+
+      const OS_LIST = [
+        { id: "windows", label: "Windows" },
+        { id: "macos", label: "macOS" },
+        { id: "ios", label: "iOS" },
+        { id: "android", label: "Android" },
+        { id: "linux", label: "Linux" },
+      ];
+      const CLIENTS_BY_OS = {
+        windows: ["v2rayn", "hiddify", "nekoray"],
+        macos: ["hiddify", "v2box", "streisand"],
+        linux: ["hiddify", "nekoray"],
+        ios: ["v2box", "streisand", "shadowrocket", "foxray"],
+        android: ["v2rayng", "hiddify", "nekobox"],
+      };
+      const CLIENT_INFO = {
+        v2rayn: { name: "v2rayN", note: "Открытый клиент для Windows", icon: "/static/clients/v2rayn.png", storeUrl: "https://github.com/2dust/v2rayN/releases" },
+        v2rayng: { name: "v2rayNG", note: "Открытый клиент для Android", icon: "/static/clients/v2rayng.png", storeUrl: "https://play.google.com/store/apps/details?id=com.v2ray.ang" },
+        hiddify: { name: "Hiddify", note: "Кроссплатформенный клиент", icon: "/static/clients/hiddify.png", storeUrl: "https://hiddify.com/" },
+        nekoray: { name: "NekoRay", note: "Для Windows и Linux", icon: "/static/clients/nekoray.png", storeUrl: "https://github.com/MatsuriDayo/nekoray/releases" },
+        nekobox: { name: "NekoBox", note: "Открытый клиент для Android", icon: "/static/clients/nekobox.png", storeUrl: "https://github.com/MatsuriDayo/NekoBoxForAndroid/releases" },
+        v2box: { name: "V2Box", note: "Для iOS и macOS", initial: "V2", storeUrl: "https://apps.apple.com/us/app/v2box-v2ray-client/id6446814690" },
+        streisand: { name: "Streisand", note: "Для iOS и macOS", initial: "S", storeUrl: "https://apps.apple.com/us/app/streisand/id6450534064" },
+        shadowrocket: { name: "Shadowrocket", note: "Для iOS, платное", initial: "SR", storeUrl: "https://apps.apple.com/us/app/shadowrocket/id932747118" },
+        foxray: { name: "FoXray", note: "Для iOS", initial: "FX", storeUrl: "https://apps.apple.com/app/foxray/id6448898396" },
+      };
+
+      // Реальные, задокументированные url-схемы импорта подписки. v2rayN, NekoBox/NekoRay,
+      // Streisand и FoXray не поддерживают надёжный deep-link — только вставка вручную.
+      const subUrl = state.subscriptionUrl || "";
+      const subName = "SpiritVPN";
+      const DEEP_LINKS = subUrl
+        ? {
+            hiddify: `hiddify://install-sub?url=${encodeURIComponent(subUrl)}#${subName}`,
+            v2box: `v2box://install-sub?url=${encodeURIComponent(subUrl)}&name=${subName}`,
+            v2rayng: `v2rayng://install-sub?url=${encodeURIComponent(subUrl)}#${subName}`,
+            shadowrocket: `shadowrocket://add/sub/${btoa(subUrl)}?remark=${subName}`,
+          }
+        : {};
+
+      const osRow = document.getElementById("os-row");
+      const clientList = document.getElementById("client-list");
+      let currentOs = "windows";
+
+      function renderOsRow() {
+        osRow.innerHTML = "";
+        for (const os of OS_LIST) {
+          const pill = document.createElement("div");
+          pill.className = "os-pill" + (os.id === currentOs ? " active" : "");
+          pill.textContent = os.label;
+          pill.addEventListener("click", () => {
+            currentOs = os.id;
+            renderOsRow();
+            renderClientList();
+          });
+          osRow.appendChild(pill);
+        }
+      }
+
+      function renderClientList() {
+        clientList.innerHTML = "";
+        for (const id of CLIENTS_BY_OS[currentOs] || []) {
+          const info = CLIENT_INFO[id];
+          const row = document.createElement("div");
+          row.className = "client-row";
+
+          const icon = document.createElement("div");
+          if (info.icon) {
+            icon.className = "client-icon";
+            const img = document.createElement("img");
+            img.src = info.icon;
+            img.alt = info.name;
+            icon.appendChild(img);
+          } else {
+            icon.className = "client-icon mono";
+            icon.textContent = info.initial;
+          }
+          row.appendChild(icon);
+
+          const text = document.createElement("div");
+          text.className = "client-text";
+          const name = document.createElement("div");
+          name.className = "client-name";
+          name.textContent = info.name;
+          const note = document.createElement("div");
+          note.className = "client-note";
+          note.textContent = info.note;
+          text.append(name, note);
+          row.appendChild(text);
+
+          const actions = document.createElement("div");
+          actions.className = "client-row-actions";
+          if (DEEP_LINKS[id]) {
+            const addBtn = document.createElement("a");
+            addBtn.className = "client-add-btn";
+            addBtn.href = DEEP_LINKS[id];
+            addBtn.textContent = "Добавить";
+            actions.appendChild(addBtn);
+          }
+          const dlLink = document.createElement("a");
+          dlLink.className = "client-link";
+          dlLink.href = info.storeUrl;
+          dlLink.title = "Скачать";
+          dlLink.target = "_blank";
+          dlLink.rel = "noopener noreferrer";
+          dlLink.innerHTML =
+            '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="M7 10l5 5 5-5"></path><path d="M12 15V3"></path></svg>';
+          actions.appendChild(dlLink);
+          row.appendChild(actions);
+
+          clientList.appendChild(row);
+        }
+      }
+
+      renderOsRow();
+      renderClientList();
+
+      // --- основные действия ---
+      if (DEEP_LINKS.hiddify) {
+        document.getElementById("primary-add-btn").href = DEEP_LINKS.hiddify;
+      }
+
+      const copyBtn = document.getElementById("copy-btn");
+      const copyBtnLabel = document.getElementById("copy-btn-label");
+      copyBtn.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(subUrl);
+        } catch (err) {
+          console.error(err);
+          return;
+        }
+        copyBtn.classList.add("copied");
+        copyBtnLabel.textContent = "Скопировано";
+        setTimeout(() => {
+          copyBtn.classList.remove("copied");
+          copyBtnLabel.textContent = "Скопировать ссылку подписки";
+        }, 1500);
+      });
+
+      // --- серверы по отдельности ---
+      const COUNTRIES = {
+        NL: { name: "Нидерланды", flag: { dir: "column", stripes: [["#AE1C28", 1], ["#FFFFFF", 1], ["#21468B", 1]] } },
+        DE: { name: "Германия", flag: { dir: "column", stripes: [["#000000", 1], ["#DD0000", 1], ["#FFCE00", 1]] } },
+        LV: { name: "Латвия", flag: { dir: "column", stripes: [["#9E1B32", 2], ["#FFFFFF", 1], ["#9E1B32", 2]] } },
+        RO: { name: "Румыния", flag: { dir: "row", stripes: [["#002B7F", 1], ["#FCD116", 1], ["#CE1126", 1]] } },
+        RU: { name: "Россия", flag: { dir: "column", stripes: [["#FFFFFF", 1], ["#0039A6", 1], ["#D52B1E", 1]] } },
+      };
+      const LEGACY_NAMES = { amsterdam: "NL", frankfurt: "DE", riga: "LV", romania: "RO", russia: "RU" };
+      const CODE_RE = /^[A-Z]{2}$/;
+
+      function flagGradient(dir, stripes) {
+        const total = stripes.reduce((s, [, w]) => s + w, 0);
+        let acc = 0;
+        const stops = [];
+        for (const [color, w] of stripes) {
+          const from = ((acc / total) * 100).toFixed(2);
+          acc += w;
+          const to = ((acc / total) * 100).toFixed(2);
+          stops.push(`${color} ${from}%`, `${color} ${to}%`);
+        }
+        return `linear-gradient(${dir === "row" ? "to right" : "to bottom"}, ${stops.join(", ")})`;
+      }
+
+      function resolveServerName(rawLabel) {
+        if (!rawLabel) return { name: null, flagGradientCss: null };
+        const [first, ...rest] = rawLabel.split(" ");
+        let code = CODE_RE.test(first) && COUNTRIES[first] ? first : LEGACY_NAMES[rawLabel.toLowerCase()];
+        const country = code ? COUNTRIES[code] : undefined;
+        return {
+          name: country ? `${country.name}${rest.length ? " " + rest.join(" ") : ""}` : rawLabel,
+          flagGradientCss: country ? flagGradient(country.flag.dir, country.flag.stripes) : null,
+        };
+      }
+
+      const serverList = document.getElementById("server-list");
+      const servers = state.servers || [];
+      servers.forEach((server, i) => {
+        const { name, flagGradientCss } = resolveServerName(server.name);
+        const row = document.createElement("div");
+        row.className = "server-row";
+
+        const dot = document.createElement("span");
+        dot.className = "dot";
+        row.appendChild(dot);
+
+        if (flagGradientCss) {
+          const flag = document.createElement("span");
+          flag.className = "flag";
+          flag.style.background = flagGradientCss;
+          row.appendChild(flag);
+        }
+
+        const info = document.createElement("div");
+        info.className = "server-info";
+        const nameEl = document.createElement("div");
+        nameEl.className = "server-name";
+        nameEl.textContent = name || `Сервер ${i + 1}`;
+        const uriEl = document.createElement("div");
+        uriEl.className = "server-uri";
+        uriEl.textContent = server.uri.length > 46 ? server.uri.slice(0, 46) + "…" : server.uri;
+        info.append(nameEl, uriEl);
+        row.appendChild(info);
+
+        const actions = document.createElement("div");
+        actions.className = "server-actions";
+
+        const openBtn = document.createElement("a");
+        openBtn.className = "server-btn";
+        openBtn.href = server.uri;
+        openBtn.title = "Открыть в приложении";
+        openBtn.innerHTML =
+          '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><path d="M15 3h6v6"></path><path d="M10 14 21 3"></path></svg>';
+        actions.appendChild(openBtn);
+
+        const copyServerBtn = document.createElement("button");
+        copyServerBtn.type = "button";
+        copyServerBtn.className = "server-btn";
+        copyServerBtn.title = "Скопировать";
+        copyServerBtn.innerHTML =
+          '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>';
+        copyServerBtn.addEventListener("click", async () => {
+          try {
+            await navigator.clipboard.writeText(server.uri);
+          } catch (err) {
+            console.error(err);
+            return;
+          }
+          copyServerBtn.classList.add("copied");
+          setTimeout(() => copyServerBtn.classList.remove("copied"), 1500);
+        });
+        actions.appendChild(copyServerBtn);
+
+        row.appendChild(actions);
+        serverList.appendChild(row);
+      });
+
+      const fallbackToggle = document.getElementById("fallback-toggle");
+      const fallbackPanel = document.getElementById("fallback-panel");
+      fallbackToggle.addEventListener("click", () => {
+        fallbackPanel.classList.toggle("empty");
+      });
+
+      const FAQ = [
+        {
+          question: "Как установить SpiritVPN?",
+          answer: "Выберите вашу операционную систему выше и установите одно из рекомендованных приложений",
+        },
+        {
+          question: "Как добавить подписку в приложение?",
+          answer: "Нажмите «Добавить подписку в приложение» — если приложения для VPN уже установлено, оно откроется и предложит добавить сервер автоматически. Если ничего не произошло, скопируйте ссылку кнопкой ниже и вставьте её в приложении вручную.",
+        },
+        {
+          question: "Приложение не приняло ссылку — что делать?",
+          answer: "Разверните блок «Показать серверы по отдельности» ниже — там каждый сервер отдельной vless ссылкой, которая открывается по тапу в любом установленном клиенте.",
+        },
+        {
+          question: "Можно ли пользоваться на нескольких устройствах?",
+          answer: "Да — одна и та же VPN подписка работает на всех ваших устройствах одновременно, ограничений по количеству нет.",
+        },
+      ];
+      const faqList = document.getElementById("faq-list");
+      FAQ.forEach((item, i) => {
+        const wrap = document.createElement("div");
+        wrap.className = "faq-item";
+
+        const q = document.createElement("button");
+        q.type = "button";
+        q.className = "faq-q";
+        q.innerHTML = `<span class="faq-q-text">${escapeHtml(item.question)}</span><svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>`;
+
+        const a = document.createElement("div");
+        a.className = "faq-a";
+        a.textContent = item.answer;
+
+        q.addEventListener("click", () => wrap.classList.toggle("open"));
+
+        wrap.append(q, a);
+        faqList.appendChild(wrap);
+      });
+    </script>
+  </body>
+</html>

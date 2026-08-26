@@ -29,6 +29,13 @@ class Settings(BaseSettings):
         default=8080, description="порт, на котором `python -m spiritvpn_bot api` слушает HTTP"
     )
 
+    main_deep_link: str = Field(
+        description=(
+            "ссылка t.me на самого бота — для кнопки «Открыть бота» и продления "
+            "на браузерной странице /s/{token}"
+        )
+    )
+
     support_url: str = Field(
         description="ссылка на поддержку 24/7 (аккаунт или группа в Telegram) для /start и /support"
     )

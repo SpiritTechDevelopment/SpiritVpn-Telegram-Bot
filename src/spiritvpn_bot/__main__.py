@@ -64,6 +64,8 @@ def _run_api() -> None:
             bot_token=container.settings.telegram_bot_token,
             subscription_base_url=container.settings.subscription_base_url,
             plans=container.plans,
+            main_deep_link=container.settings.main_deep_link,
+            clock=container.clock,
         )
         config = uvicorn.Config(
             app,

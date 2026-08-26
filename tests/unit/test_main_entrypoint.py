@@ -16,6 +16,7 @@ _REQUIRED_ENV = {
     "BOT_SPIRITVPND_TLS_CA_FILE": "x",
     "BOT_SUBSCRIPTION_BASE_URL": "https://x",
     "BOT_MINI_APP_URL": "https://x",
+    "BOT_MAIN_DEEP_LINK": "https://t.me/x",
     "BOT_SUPPORT_URL": "https://t.me/x",
     "BOT_REVIEWS_URL": "https://t.me/x",
     "BOT_SUBSCRIPTION_SIGNING_KEY": "x",

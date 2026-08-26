@@ -50,6 +50,7 @@ poetry run python -m spiritvpn_bot create-link 10 1073741824
 | `BOT_SUBSCRIPTION_BASE_URL` | публичный адрес процесса `api`, для ссылок `/s/{token}` |
 | `BOT_MINI_APP_URL` | публичный адрес мини-аппа для кнопки в боте |
 | `BOT_MINI_APP_HTTP_PORT` | необязательная, порт процесса `api`, по умолчанию 8080 |
+| `BOT_MAIN_DEEP_LINK` | ссылка `t.me` на бота — кнопка «Открыть бота»/«Продлить»/«Оформить» на браузерной странице `/s/{token}` |
 | `BOT_SUBSCRIPTION_SIGNING_KEY` | секрет подписи токена `/s/{token}` |
 | `BOT_FRIENDS_PLAN_FLEET_ID` | `vpn_fleet_id` бесплатного плана, должен существовать в манифесте `spiritvpnd` |
 | `BOT_FRIENDS_PLAN_QUOTA_BYTES` | необязательная, квота трафика на ноду для бесплатного плана |

@@ -32,6 +32,7 @@ HELP_TEXT = (
     "📊 /status — Статус подписки и серверов\n"
     "💳 /plans — Тарифы, регионы и статус подписки\n"
     "👥 /support — Связаться с поддержкой\n"
+    "⭐ /reviews — Отзывы о SpiritVPN\n"
     "❓ /help — Справка по командам\n"
 )
 
@@ -40,6 +41,7 @@ BTN_OPEN_APP_DEV = "🚀 Открыть приложение (dev, в брауз
 BTN_SUPPORT = "👥 Поддержка 24/7"
 BTN_REVIEWS = "⭐ Отзывы"
 BTN_SUPPORT_DIRECT = "👥 Написать в поддержку"
+BTN_REVIEWS_DIRECT = "⭐ Оставить отзыв"
 
 STATUS_NO_SUBSCRIPTION = "🔒 Подписка не активна. Откройте приложение, чтобы выбрать тариф."
 STATUS_SERVERS_READY_TEMPLATE = "Серверы: {ready}/{total} активны"
@@ -59,9 +61,10 @@ PLANS_REGIONS_HEADER = "🌍 Регионы"
 # такой метод на стороне spiritvpnd, заменить эту строку на реальный запрос.
 # PLANS_REGIONS_LIST = "🇳🇱 Нидерланды · 🇩🇪 Германия · 🇱🇻 Латвия · 🇷🇴 Румыния · 🇷🇺 Россия"
 PLANS_REGIONS_LIST = "🇷🇴 Румыния · 🇷🇺 Россия"
-PLANS_FOOTER = "Оформить или продлить можно в приложении."
+PLANS_FOOTER = "Оформить или продлить подписку на SpiritVPN можно в приложении."
 
 SUPPORT_HEADER = "👥 Поддержка на связи 24/7:"
+REVIEWS_HEADER = "⭐ Отзывы о SpiritVPN"
 
 TEXT_EXPIRY_REGRESSION = (
     "У вас уже есть доступ на более долгий срок, чем даёт этот код. SpiritVPN "

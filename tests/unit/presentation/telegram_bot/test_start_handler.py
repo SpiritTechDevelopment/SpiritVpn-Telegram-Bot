@@ -24,6 +24,7 @@ from spiritvpn_bot.domain.entities.plan import Plan
 from spiritvpn_bot.presentation.telegram_bot.handlers.start import (
     handle_help,
     handle_plans,
+    handle_reviews,
     handle_start,
     handle_status,
     handle_support,
@@ -430,13 +431,24 @@ async def test_support_sends_direct_link_button() -> None:
     assert button.url == SUPPORT_URL
 
 
+async def test_reviews_sends_direct_link_button() -> None:
+    message = FakeMessage(from_user=FakeUser(id=1))
+
+    await handle_reviews(message, REVIEWS_URL)  # type: ignore[arg-type]
+
+    assert len(message.answers) == 1
+    assert message.answers[0].reply_markup is not None
+    button = message.answers[0].reply_markup.inline_keyboard[0][0]
+    assert button.url == REVIEWS_URL
+
+
 async def test_help_lists_all_commands() -> None:
     message = FakeMessage(from_user=FakeUser(id=1))
 
     await handle_help(message, MINI_APP_URL)  # type: ignore[arg-type]
 
     text = message.answers[0].text
-    for command in ("/start", "/status", "/plans", "/support", "/help"):
+    for command in ("/start", "/status", "/plans", "/support", "/reviews", "/help"):
         assert command in text
 
 

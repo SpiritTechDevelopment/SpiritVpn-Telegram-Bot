@@ -14,6 +14,7 @@ BOT_COMMANDS = [
     BotCommand(command="status", description="Статус подписки и серверов"),
     BotCommand(command="plans", description="Тарифы"),
     BotCommand(command="support", description="Поддержка 24/7"),
+    BotCommand(command="reviews", description="Отзывы"),
     BotCommand(command="help", description="Список команд"),
 ]
 

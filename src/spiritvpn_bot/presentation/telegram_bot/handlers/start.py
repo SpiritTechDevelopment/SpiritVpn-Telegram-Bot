@@ -187,6 +187,7 @@ async def handle_plans(
     lines.append("")
 
     lines.append(texts.PLANS_REGIONS_HEADER)
+    lines.append("")
     lines.append(texts.PLANS_REGIONS_LIST)
     lines.append("")
 
@@ -204,6 +205,20 @@ async def handle_support(message: Message, support_url: str) -> None:
         texts.SUPPORT_HEADER,
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[[InlineKeyboardButton(text=texts.BTN_SUPPORT_DIRECT, url=support_url)]]
+        ),
+    )
+
+
+async def handle_reviews(message: Message, reviews_url: str) -> None:
+    """/reviews — прямая ссылка на отзывы о SpiritVPN.
+    Args:
+        message: входящее сообщение.
+        reviews_url: публичный URL канала с отзывами для кнопки.
+    """
+    await message.answer(
+        texts.REVIEWS_HEADER,
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text=texts.BTN_REVIEWS_DIRECT, url=reviews_url)]]
         ),
     )
 
@@ -316,5 +331,6 @@ router.message.register(handle_start, CommandStart())
 router.message.register(handle_status, Command("status"))
 router.message.register(handle_plans, Command("plans"))
 router.message.register(handle_support, Command("support"))
+router.message.register(handle_reviews, Command("reviews"))
 router.message.register(handle_help, Command("help"))
 router.message.register(handle_text, F.text & ~F.text.startswith("/"))

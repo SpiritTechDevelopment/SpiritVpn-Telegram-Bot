@@ -105,9 +105,7 @@ async def handle_start(
     reviews_url: str,
     friends_shared_code: str,
 ) -> None:
-    """/start — приветственное видео и кнопки (приложение, поддержка, отзывы).
-    
-    """
+    """/start — приветственное видео и кнопки (приложение, поддержка, отзывы)."""
     caption = texts.WELCOME_CAPTION + texts.WELCOME_FREE_TRIAL_TEMPLATE.format(
         code=html.escape(friends_shared_code)
     )

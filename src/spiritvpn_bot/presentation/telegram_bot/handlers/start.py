@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import html
 import re
 from collections.abc import Callable
 from pathlib import Path
 
 from aiogram import F, Router
+from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import Command, CommandStart
 from aiogram.types import (
@@ -89,25 +91,36 @@ async def _send_welcome_video(
 ) -> None:
     global _welcome_animation_file_id
     animation = _welcome_animation_file_id or FSInputFile(WELCOME_ANIMATION_PATH)
-    sent = await message.answer_animation(animation, caption=caption, reply_markup=reply_markup)
+    sent = await message.answer_animation(
+        animation, caption=caption, reply_markup=reply_markup, parse_mode=ParseMode.HTML
+    )
     if _welcome_animation_file_id is None and sent.animation is not None:
         _welcome_animation_file_id = sent.animation.file_id
 
 
 async def handle_start(
-    message: Message, mini_app_url: str, support_url: str, reviews_url: str
+    message: Message,
+    mini_app_url: str,
+    support_url: str,
+    reviews_url: str,
+    friends_shared_code: str,
 ) -> None:
-    """/start — приветственное видео и кнопки (приложение, поддержка, отзывы)."""
+    """/start — приветственное видео и кнопки (приложение, поддержка, отзывы).
+    
+    """
+    caption = texts.WELCOME_CAPTION + texts.WELCOME_FREE_TRIAL_TEMPLATE.format(
+        code=html.escape(friends_shared_code)
+    )
     try:
         await _send_welcome_video(
-            message, texts.WELCOME_CAPTION, welcome_keyboard(mini_app_url, support_url, reviews_url)
+            message, caption, welcome_keyboard(mini_app_url, support_url, reviews_url)
         )
     except TelegramBadRequest as exc:
         if "HTTP URL" not in exc.message:
             raise
         logger.warning("mini_app_button_rejected", mini_app_url=mini_app_url, error=exc.message)
         fallback_caption = texts.WELCOME_FALLBACK_TEMPLATE.format(
-            caption=texts.WELCOME_CAPTION,
+            caption=caption,
             mini_app_url=mini_app_url,
             support_url=support_url,
             reviews_url=reviews_url,

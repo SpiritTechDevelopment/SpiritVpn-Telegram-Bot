@@ -49,6 +49,7 @@ async def run_bot(container: Container) -> None:
         mini_app_url=container.settings.mini_app_url,
         support_url=container.settings.support_url,
         reviews_url=container.settings.reviews_url,
+        friends_shared_code=container.settings.friends_shared_code,
         plans=container.plans,
         dev_admin_user_ids=container.settings.dev_admin_user_id_set(),
         dev_create_link_use_case=dev_create_link_use_case,

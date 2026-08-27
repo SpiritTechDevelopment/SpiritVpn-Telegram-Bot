@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from typing import Any
 
+from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramBadRequest
 
 from spiritvpn_bot.application.errors import ExpiryRegression
@@ -76,6 +77,7 @@ class FakeAnimationAnswer:
     animation: Any
     caption: str
     reply_markup: Any = None
+    parse_mode: Any = None
 
 
 @dataclass
@@ -95,11 +97,17 @@ class FakeMessage:
         self.answers.append(FakeAnswer(text, reply_markup))
 
     async def answer_animation(
-        self, animation: Any, caption: str = "", reply_markup: Any = None
+        self,
+        animation: Any,
+        caption: str = "",
+        reply_markup: Any = None,
+        parse_mode: Any = None,
     ) -> SimpleNamespace:
         if reply_markup is not None and self.reject_button_urls:
             raise self._button_rejected()
-        self.animation_answers.append(FakeAnimationAnswer(animation, caption, reply_markup))
+        self.animation_answers.append(
+            FakeAnimationAnswer(animation, caption, reply_markup, parse_mode)
+        )
         return SimpleNamespace(animation=None)
 
     @staticmethod
@@ -128,16 +136,31 @@ def build_use_cases() -> (
 async def test_start_shows_welcome_animation_and_buttons() -> None:
     message = FakeMessage(from_user=FakeUser(id=1))
 
-    await handle_start(message, MINI_APP_URL, SUPPORT_URL, REVIEWS_URL)  # type: ignore[arg-type]
+    await handle_start(  # type: ignore[arg-type]
+        message, MINI_APP_URL, SUPPORT_URL, REVIEWS_URL, SHARED_CODE
+    )
 
     assert len(message.animation_answers) == 1
     assert len(message.answers) == 0
     animation_answer = message.animation_answers[0]
     assert "SpiritVPN" in animation_answer.caption
-    assert "пароль" not in animation_answer.caption.lower()
-    assert "код" not in animation_answer.caption.lower()
     assert animation_answer.reply_markup is not None
     assert len(animation_answer.reply_markup.inline_keyboard) == 3
+
+
+async def test_start_includes_tap_to_copy_free_trial_code() -> None:
+    # TODO(temporary): пока не запущен сервис оплаты — см. texts.py и
+    # config.py: friends_shared_code. Код обёрнут в <code>, чтобы Telegram
+    # копировал его по тапу; для этого сообщение шлётся с parse_mode=HTML.
+    message = FakeMessage(from_user=FakeUser(id=1))
+
+    await handle_start(  # type: ignore[arg-type]
+        message, MINI_APP_URL, SUPPORT_URL, REVIEWS_URL, SHARED_CODE
+    )
+
+    animation_answer = message.animation_answers[0]
+    assert f"<code>{SHARED_CODE}</code>" in animation_answer.caption
+    assert animation_answer.parse_mode == ParseMode.HTML
 
 
 async def test_correct_shared_code_grants_access() -> None:
@@ -240,7 +263,7 @@ async def test_rejected_button_url_falls_back_to_animation_with_plain_links() ->
     message = FakeMessage(from_user=FakeUser(id=1), reject_button_urls=True)
 
     await handle_start(  # type: ignore[arg-type]
-        message, "http://localhost:8081", SUPPORT_URL, REVIEWS_URL
+        message, "http://localhost:8081", SUPPORT_URL, REVIEWS_URL, SHARED_CODE
     )
 
     assert len(message.animation_answers) == 1

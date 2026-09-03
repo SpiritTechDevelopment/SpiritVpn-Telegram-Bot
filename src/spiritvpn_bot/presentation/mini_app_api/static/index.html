@@ -234,17 +234,18 @@
       .dot.failed {
         background: #b8503f;
       }
-      .flag {
-        display: flex;
-        width: 20px;
-        height: 14px;
-        border-radius: 2px;
-        overflow: hidden;
-        border: 1px solid rgba(255, 255, 255, 0.18);
-        flex-shrink: 0;
+      @font-face {
+        font-family: "Twemoji Country Flags";
+        src: url("/static/fonts/TwemojiCountryFlags.woff2") format("woff2");
+        unicode-range: U+1F1E6-1F1FF;
+        font-display: swap;
       }
-      .flag span {
-        display: block;
+      .flag {
+        font-size: 15px;
+        line-height: 1;
+        flex-shrink: 0;
+        font-family: "Twemoji Country Flags", "Apple Color Emoji", "Segoe UI Emoji",
+          "Noto Color Emoji", sans-serif;
       }
       #toggle-servers {
         align-self: flex-start;
@@ -616,29 +617,9 @@
       const RENEW_ICON_SVG =
         '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M3 21v-5h5"></path></svg>';
 
-      const COUNTRIES = {
-        NL: {
-          name: "Netherlands",
-          flag: { dir: "column", stripes: [["#AE1C28", 1], ["#FFFFFF", 1], ["#21468B", 1]] },
-        },
-        DE: {
-          name: "Germany",
-          flag: { dir: "column", stripes: [["#000000", 1], ["#DD0000", 1], ["#FFCE00", 1]] },
-        },
-        LV: {
-          name: "Latvia",
-          flag: { dir: "column", stripes: [["#9E1B32", 2], ["#FFFFFF", 1], ["#9E1B32", 2]] },
-        },
-        RO: {
-          name: "Romania",
-          flag: { dir: "row", stripes: [["#002B7F", 1], ["#FCD116", 1], ["#CE1126", 1]] },
-        },
-        RU: {
-          name: "Russia",
-          flag: { dir: "column", stripes: [["#FFFFFF", 1], ["#0039A6", 1], ["#D52B1E", 1]] },
-        },
-      };
-
+      // Имена нод приходят как «RO Romania-1» — ISO-код плюс имя ноды. Флаг и
+      // название страны выводятся из самого кода, без списка стран на нашей
+      // стороне: новая страна на бэкенде подхватывается здесь сама.
       const COUNTRY_CODE_BY_LEGACY_NAME = {
         amsterdam: "NL",
         frankfurt: "DE",
@@ -649,9 +630,36 @@
 
       const COUNTRY_CODE_RE = /^[A-Z]{2}$/;
 
+      const REGION_NAMES = (() => {
+        try {
+          return new Intl.DisplayNames(["en"], { type: "region" });
+        } catch {
+          return null;
+        }
+      })();
+
+      function countryNameFor(code) {
+        if (!REGION_NAMES) {
+          return null;
+        }
+        let name;
+        try {
+          name = REGION_NAMES.of(code);
+        } catch {
+          return null;
+        }
+        return name && name !== code ? name : null;
+      }
+
+      function flagEmojiFor(code) {
+        return String.fromCodePoint(
+          ...[...code].map((ch) => 0x1f1e6 + ch.charCodeAt(0) - "A".charCodeAt(0)),
+        );
+      }
+
       function splitCountryCode(side) {
         const [first, ...rest] = side.split(" ");
-        if (COUNTRY_CODE_RE.test(first) && COUNTRIES[first]) {
+        if (COUNTRY_CODE_RE.test(first) && countryNameFor(first)) {
           return { code: first, rest: rest.join(" ") || side };
         }
         return { code: null, rest: side };
@@ -660,43 +668,37 @@
       function countryInfoForSide(rawSide) {
         const { code, rest } = splitCountryCode(rawSide);
         const resolvedCode = code ?? COUNTRY_CODE_BY_LEGACY_NAME[rawSide.toLowerCase()];
-        const country = resolvedCode ? COUNTRIES[resolvedCode] : undefined;
+        const name = resolvedCode ? countryNameFor(resolvedCode) : null;
         return {
-          flag: country?.flag ?? null,
-          name: country?.name ?? rest,
-          detail: country && rest !== country.name ? rest : null,
+          flag: name ? flagEmojiFor(resolvedCode) : null,
+          name: name ?? rest,
+          detail: name && rest !== name ? rest : null,
         };
       }
 
       function resolveLink(label) {
         if (!label) {
-          return { flagDef: null, displayLabel: null, detailLabel: null };
+          return { flag: null, displayLabel: null, detailLabel: null };
         }
         const infos = label.split("→").map((side) => countryInfoForSide(side.trim()));
         const detailLabel = infos.some((info) => info.detail)
           ? infos.map((info) => info.detail ?? info.name).join(" → ")
           : null;
         return {
-          flagDef: infos[0].flag,
+          flag: infos[0].flag,
           displayLabel: infos.map((info) => info.name).join(" → "),
           detailLabel,
         };
       }
 
-      function buildFlagIcon(flagDef) {
-        if (!flagDef) {
+      function buildFlagIcon(flag) {
+        if (!flag) {
           return null;
         }
-        const flag = document.createElement("span");
-        flag.className = "flag";
-        flag.style.flexDirection = flagDef.dir;
-        for (const [color, weight] of flagDef.stripes) {
-          const stripe = document.createElement("span");
-          stripe.style.background = color;
-          stripe.style.flexGrow = String(weight);
-          flag.appendChild(stripe);
-        }
-        return flag;
+        const el = document.createElement("span");
+        el.className = "flag";
+        el.textContent = flag;
+        return el;
       }
 
       let allLinks = [];
@@ -739,8 +741,8 @@
         dot.className = `dot ${link.state.toLowerCase()}`;
         row.appendChild(dot);
 
-        const { flagDef, displayLabel, detailLabel } = resolveLink(link.label);
-        const flagIcon = buildFlagIcon(flagDef);
+        const { flag, displayLabel, detailLabel } = resolveLink(link.label);
+        const flagIcon = buildFlagIcon(flag);
         if (flagIcon) {
           row.appendChild(flagIcon);
         }

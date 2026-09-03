@@ -109,6 +109,7 @@ def create_app(
     app.mount(
         "/static/clients", StaticFiles(directory=_STATIC_DIR / "clients"), name="client-icons"
     )
+    app.mount("/static/fonts", StaticFiles(directory=_STATIC_DIR / "fonts"), name="fonts")
     subscription_html_template = (_STATIC_DIR / "subscription.html").read_text(encoding="utf-8")
 
     async def _render_subscription_page(*, token: str, customer_id: str) -> HTMLResponse:

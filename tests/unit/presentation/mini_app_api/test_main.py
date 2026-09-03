@@ -258,6 +258,14 @@ def test_client_icons_are_served_as_static_files() -> None:
     assert response.headers["content-type"] == "image/png"
 
 
+def test_flag_font_is_served_as_a_static_file() -> None:
+    client = make_client(FakeVPNAccessGateway())
+
+    response = client.get("/static/fonts/TwemojiCountryFlags.woff2")
+
+    assert response.status_code == 200
+
+
 def test_my_links_requires_init_data_header() -> None:
     client = make_client(FakeVPNAccessGateway())
 

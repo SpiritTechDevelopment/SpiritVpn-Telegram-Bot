@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="format-detection" content="telephone=no,address=no,date=no,email=no" />
     <title>SpiritVPN — подписка</title>
     <link
       rel="stylesheet"
@@ -254,7 +255,8 @@
           "Noto Color Emoji", sans-serif;
       }
       .server-info { flex-grow: 1; min-width: 0; }
-      .server-name { font-size: 0.86rem; font-weight: 700; }
+      .server-name { font-size: 0.86rem; font-weight: 700; color: var(--text); }
+      .server-name * { color: inherit !important; -webkit-text-fill-color: inherit !important; }
       .server-uri {
         font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 0.7rem; color: var(--hint);
         white-space: nowrap; overflow: hidden; text-overflow: ellipsis;

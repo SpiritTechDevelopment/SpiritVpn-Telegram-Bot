@@ -363,6 +363,35 @@ def test_static_index_page_is_served() -> None:
     assert "SpiritVPN" in response.text
 
 
+def test_privacy_page_is_served() -> None:
+    client = make_client(FakeVPNAccessGateway())
+
+    response = client.get("/privacy")
+
+    assert response.status_code == 200
+    assert "text/html" in response.headers["content-type"]
+    assert "Политика конфиденциальности" in response.text
+
+
+def test_terms_page_is_served() -> None:
+    client = make_client(FakeVPNAccessGateway())
+
+    response = client.get("/terms")
+
+    assert response.status_code == 200
+    assert "text/html" in response.headers["content-type"]
+    assert "Пользовательское соглашение" in response.text
+
+
+def test_mini_app_page_links_to_privacy_and_terms() -> None:
+    client = make_client(FakeVPNAccessGateway())
+
+    response = client.get("/")
+
+    assert 'href="/privacy"' in response.text
+    assert 'href="/terms"' in response.text
+
+
 def test_static_index_page_is_not_cached() -> None:
     client = make_client(FakeVPNAccessGateway())
 

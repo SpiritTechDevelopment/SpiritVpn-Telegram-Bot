@@ -218,9 +218,19 @@ def create_app(
         ]
 
     index_html = (_STATIC_DIR / "index.html").read_text(encoding="utf-8")
+    privacy_html = (_STATIC_DIR / "privacy.html").read_text(encoding="utf-8")
+    terms_html = (_STATIC_DIR / "terms.html").read_text(encoding="utf-8")
 
     @app.get("/", response_class=HTMLResponse)
     async def mini_app_page() -> HTMLResponse:
         return HTMLResponse(content=index_html, headers={"Cache-Control": "no-store"})
+
+    @app.get("/privacy", response_class=HTMLResponse)
+    async def privacy_page() -> HTMLResponse:
+        return HTMLResponse(content=privacy_html)
+
+    @app.get("/terms", response_class=HTMLResponse)
+    async def terms_page() -> HTMLResponse:
+        return HTMLResponse(content=terms_html)
 
     return app

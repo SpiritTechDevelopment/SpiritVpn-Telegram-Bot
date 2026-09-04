@@ -217,10 +217,14 @@
       }
       .server-name {
         color: var(--text);
+        -webkit-text-fill-color: var(--text);
       }
-      .server-name * {
+      .server-name *,
+      a[x-apple-data-detectors],
+      a[x-apple-data-detectors] * {
         color: inherit !important;
         -webkit-text-fill-color: inherit !important;
+        text-decoration: none !important;
       }
       .server-detail {
         font-size: 0.78rem;
@@ -665,6 +669,10 @@
         );
       }
 
+      function undetectable(text) {
+        return text.length > 1 ? `${text[0]}​${text.slice(1)}` : text;
+      }
+
       function splitCountryCode(side) {
         const [first, ...rest] = side.split(" ");
         if (COUNTRY_CODE_RE.test(first) && countryNameFor(first)) {
@@ -760,7 +768,7 @@
 
         const name = document.createElement("span");
         name.className = "server-name";
-        name.textContent = displayLabel ?? `Сервер ${index + 1}`;
+        name.textContent = undetectable(displayLabel ?? `Сервер ${index + 1}`);
         info.appendChild(name);
 
         if (detailLabel) {

@@ -624,6 +624,10 @@
         );
       }
 
+      function undetectable(text) {
+        return text.length > 1 ? `${text[0]}​${text.slice(1)}` : text;
+      }
+
       function resolveServerName(rawLabel) {
         if (!rawLabel) return { name: null, flag: null };
         const [first, ...rest] = rawLabel.split(" ");
@@ -667,7 +671,7 @@
         info.className = "server-info";
         const nameEl = document.createElement("div");
         nameEl.className = "server-name";
-        nameEl.textContent = name || `Сервер ${i + 1}`;
+        nameEl.textContent = undetectable(name || `Сервер ${i + 1}`);
         const uriEl = document.createElement("div");
         uriEl.className = "server-uri";
         uriEl.textContent = server.uri.length > 46 ? server.uri.slice(0, 46) + "…" : server.uri;
